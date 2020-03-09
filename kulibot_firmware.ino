@@ -1,8 +1,29 @@
 
 #include "Stepper.h"
-//#include <PITimer.h>
 #include <Bounce2.h>
-#include <Cmd.h>
+#include <PITimer.h>
+#include <PacketSerial.h>
+
+#define CIRCULAR_BUFFER_INT_SAFE
+#include "CircularBuffer.h"
+
+// struct for storing step timings
+struct dtData {
+  long dt;
+  int action;
+};
+
+// 1500 * 4 * 64 bit = 48 kbytes, Teensy 3.2 has 64 kbytes of RAM
+// 3000 * 2* ( 32 bit + 8 bit) = 30 kbytes
+CircularBuffer<dtData, 2000> xsteps;
+CircularBuffer<dtData, 2000> ysteps;
+
+//SerialTransfer transferbuffer;
+PacketSerial_<COBS, 0, 512> myPacketSerial;
+
+bool datawasrequested = false;
+bool fillbuffer = false;
+
 
 #define button 0
 #define up 4
@@ -56,92 +77,70 @@ Stepper stepper_top(200, BOTTOM_DIR, BOTTOM_STEP, BOTTOM_MS1, BOTTOM_MS2, BOTTOM
 
 #define DELAYMU 200
 
-void forward_top(int arg_cnt, char **args) {
-  Stream *s = cmdGetStream();
-  int n = 0;
-  if(arg_cnt > 0) {
-      n = atoi(args[1]);
-  }
-  s->print("top, ");
-  s->print(n);
-  s->println(" steps forwards");
-  stepper_top.set_dir(false);
-  for (int i = 0; i<n; i++) {
-    step_top();
-    delayMicroseconds(DELAYMU);
-  }
-}
+// void forward_top(int arg_cnt, char **args) {
+//   Stream *s = cmdGetStream();
+//   int n = 0;
+//   if(arg_cnt > 0) {
+//       n = atoi(args[1]);
+//   }
+//   s->print("top, ");
+//   s->print(n);
+//   s->println(" steps forwards");
+//   stepper_top.set_dir(false);
+//   for (int i = 0; i<n; i++) {
+//     step_top();
+//     delayMicroseconds(DELAYMU);
+//   }
+// }
 
-void backward_top(int arg_cnt, char **args) {
-  Stream *s = cmdGetStream();
-  int n = 0;
-  if(arg_cnt > 0) {
-      n = atoi(args[1]);
-  }
-  s->print("top, ");
-  s->print(n);
-  s->println(" steps backwards");
-  stepper_top.set_dir(true);
-  for (int i = 0; i<n; i++) {
-    step_top();
-    delayMicroseconds(DELAYMU);
-  }
-}
+// void backward_top(int arg_cnt, char **args) {
+//   Stream *s = cmdGetStream();
+//   int n = 0;
+//   if(arg_cnt > 0) {
+//       n = atoi(args[1]);
+//   }
+//   s->print("top, ");
+//   s->print(n);
+//   s->println(" steps backwards");
+//   stepper_top.set_dir(true);
+//   for (int i = 0; i<n; i++) {
+//     step_top();
+//     delayMicroseconds(DELAYMU);
+//   }
+// }
 
-void forward_bottom(int arg_cnt, char **args) {
-  Stream *s = cmdGetStream();
-  int n = 0;
-  if(arg_cnt > 0) {
-      n = atoi(args[1]);
-  }
-  s->print("bottom, ");
-  s->print(n);
-  s->println(" steps forwards");
-  stepper_bottom.set_dir(true);
-  for (int i = 0; i<n; i++) {
-    step_bottom();
-    delayMicroseconds(DELAYMU);
-  }
-}
+// void forward_bottom(int arg_cnt, char **args) {
+//   Stream *s = cmdGetStream();
+//   int n = 0;
+//   if(arg_cnt > 0) {
+//       n = atoi(args[1]);
+//   }
+//   s->print("bottom, ");
+//   s->print(n);
+//   s->println(" steps forwards");
+//   stepper_bottom.set_dir(true);
+//   for (int i = 0; i<n; i++) {
+//     step_bottom();
+//     delayMicroseconds(DELAYMU);
+//   }
+// }
 
-void backward_bottom(int arg_cnt, char **args) {
-  Stream *s = cmdGetStream();
-  int n = 0;
-  if(arg_cnt > 0) {
-      n = atoi(args[1]);
-  }
-  s->print("bottom, ");
-  s->print(n);
-  s->println(" steps backwards");
-  stepper_bottom.set_dir(false);
-  for (int i = 0; i<n; i++) {
-    step_bottom();
-    delayMicroseconds(DELAYMU);
-  }
-}
+// void backward_bottom(int arg_cnt, char **args) {
+//   Stream *s = cmdGetStream();
+//   int n = 0;
+//   if(arg_cnt > 0) {
+//       n = atoi(args[1]);
+//   }
+//   s->print("bottom, ");
+//   s->print(n);
+//   s->println(" steps backwards");
+//   stepper_bottom.set_dir(false);
+//   for (int i = 0; i<n; i++) {
+//     step_bottom();
+//     delayMicroseconds(DELAYMU);
+//   }
+// }
 
-void enable(int arg_cnt, char **args)
-{
-  Stream *s = cmdGetStream();
-  s->println("Enabling Drivers");
-  stepper_top.enableDriver();
-  stepper_bottom.enableDriver();
-}
-
-void disable(int arg_cnt, char **args)
-{
-  Stream *s = cmdGetStream();
-  s->println("Disabling Drivers");
-  stepper_top.disableDriver();
-  stepper_bottom.disableDriver();
-}
-
-void home_cmd(int arg_cnt, char **args)
-{
-  Stream *s = cmdGetStream();
-  s->println("Homing Steppers");
-  home_motors();
-}
 
 void setup() {
   stepper_bottom.setMicrostepping(3);
@@ -176,15 +175,14 @@ void setup() {
   right_bounce.interval(5); // interval in ms
   
     
-  Serial.begin(57600);
-  cmdInit(&Serial);
-  cmdAdd("ftop",forward_top);
-  cmdAdd("btop",backward_top);
-  cmdAdd("fbot",forward_bottom);
-  cmdAdd("bbot",backward_bottom);
-  cmdAdd("enable",enable);
-  cmdAdd("disable",disable);
-  cmdAdd("home",home_cmd);
+ // We begin communication with our PacketSerial object by setting the
+  // communication speed in bits / second (baud).
+  myPacketSerial.begin(115200);
+
+  // If we want to receive packets, we must specify a packet handler function.
+  // The packet handler is a custom function with a signature like the
+  // onPacketReceived function below.
+  myPacketSerial.setPacketHandler(&onPacketReceived);
 
 }
 
@@ -279,10 +277,119 @@ void home_motors() {
 }
 
 
+// This is our handler callback function.
+// When an encoded packet is received and decoded, it will be delivered here.
+// The `buffer` is a pointer to the decoded byte array. `size` is the number of
+// bytes in the `buffer`.
+void onPacketReceived(const uint8_t* buffer, size_t size)
+{
+  char command = *(buffer);
+  uint8_t transmitBuffer[128];
+
+  // 'b' -> fill buffer with data
+  if (command == 'b') {
+    dtData data;
+    char axis = *(buffer + 1);
+    char action = *(buffer + 2);
+    byte size = *(buffer + 3); 
+    byte offset = 3;
+    long dt=0;
+
+    if (axis == 'x') {
+      for (byte c=0; c<size; c++) {
+        for (byte i=0; i<4; i++)     {
+          dt+= (*(buffer+offset+i))<<(i*8);
+        }
+        data.dt = dt;
+        xsteps.push(data);
+      }
+      datawasrequested = false;
+
+    } else if (axis == 'y') {
+      for (byte c=0; c<size; c++) {
+        for (byte i=0; i<4; i++)     {
+          dt+= (*(buffer+offset+i))<<(i*8);
+        }
+        data.dt = dt;
+        ysteps.push(data);
+      }
+      datawasrequested = false;
+    }
+  // 'h' -> home motors
+  } else if (command == 'h') {
+    home_motors();
+    transmitBuffer[0] = 'h';
+    transmitBuffer[1] = 'f';
+    myPacketSerial.send(transmitBuffer, 2);
+  // 'e' -> enable motors
+  } else if (command == 'e') {
+    stepper_top.enableDriver();
+    stepper_bottom.enableDriver();
+  // 'd' -> disable motors
+  } else if (command == 'd') {
+    stepper_top.disableDriver();
+    stepper_bottom.disableDriver();
+  // 'f' -> start requesting data
+  }  else if (command == 'f') {
+    fillbuffer = true;
+  // 's' -> stop requesting data
+  } else if (command == 's') {
+    fillbuffer = false;
+  // 'l' -> send buffer lengths
+  } else if (command == 'l') {
+    char axis = *(buffer + 1);
+    long size;
+    size = (long) xsteps.size();
+    transmitBuffer[0] = 'l';
+    transmitBuffer[1] = 'x';
+    for (int i=0; i<4; i++) {
+        transmitBuffer[i+2]=((size>>(i*8)) & 0xff);
+    }
+    size = (long) ysteps.size();
+    transmitBuffer[6] = 'y';
+    for (int i=0; i<4; i++) {
+        transmitBuffer[i+7]=((size>>(i*8)) & 0xff);
+    }
+    myPacketSerial.send(transmitBuffer, 11);
+  }
+}
+
+
+void request_data(char axis)
+{
+  uint8_t transmitBuffer[128];
+  transmitBuffer[0] = 'r';
+  transmitBuffer[1] = axis;
+  transmitBuffer[2] = 100;
+  myPacketSerial.send(transmitBuffer, 3);
+  datawasrequested = true;
+}
+
+
+unsigned long xtime = 0;
+unsigned long ytime = 0;
+
+
 void loop() {
   update_switches();
-  cmdPoll();
 
+  myPacketSerial.update();
+
+  if (!datawasrequested) {
+    if ( (fillbuffer && millis() - ytime >= 100) 
+      && (ysteps.available() > 200) 
+      && (ysteps.available() >= xsteps.available()) ) {    
+        request_data('y');
+        ytime = millis();
+    }
+
+    if ( (fillbuffer && millis() - xtime >= 100) 
+      && (xsteps.available() > 200) 
+      && (xsteps.available() >= ysteps.available()) ) {
+        request_data('x');
+        xtime = millis();
+    }
+  }
 
   button_bounce.update();
   up_bounce.update();
