@@ -19,7 +19,7 @@ CircularBuffer<dtData, 3000> xsteps;
 CircularBuffer<dtData, 3000> ysteps;
 
 //SerialTransfer transferbuffer;
-PacketSerial_<COBS, 0, 512> myPacketSerial;
+PacketSerial_<COBS, 0, 2048> myPacketSerial;
 
 
 #define button 0
@@ -307,28 +307,37 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'b' -> fill buffer with data
   if (command == 'b') {
     dtData data;
-    char axis = *(buffer + 1);
-    char action = *(buffer + 2);
-    byte size = *(buffer + 3); 
-    byte offset = 3;
+    byte offset = 1;
+    char axis = *(buffer + offset);
+    offset+=1;
+    char action = *(buffer + offset);
+    offset+=1;
+    uint16_t size = 0; 
+    for (byte i=0; i<2; i++)     {
+      size+= (*(buffer+offset+i))<<(i*8);
+    }
+    offset+=2;
+
     long dt=0;
 
     if (axis == 'x') {
-      for (byte c=0; c<size; c++) {
+      for (uint16_t c=0; c<size; c++) {
         for (byte i=0; i<4; i++)     {
           dt+= (*(buffer+offset+i))<<(i*8);
         }
         data.dt = dt;
         xsteps.push(data);
+        offset += 4;
       }
 
     } else if (axis == 'y') {
-      for (byte c=0; c<size; c++) {
+      for (long c=0; c<size; c++) {
         for (byte i=0; i<4; i++)     {
           dt+= (*(buffer+offset+i))<<(i*8);
         }
         data.dt = dt;
         ysteps.push(data);
+        offset += 4;
       }
     }
   // 'h' -> home motors

@@ -70,16 +70,18 @@ if __name__ == '__main__':
 
     #write(ser, b'f')
 
-    size = 500
+    size = 666
 
-    reply = b''
-    reply += b'b'
-    reply += b'x'
-    reply += b's'
-    reply += bytes([size])                  
-    dt = 1000
-    for m in range(size):
-        reply += bytes(struct.pack("l", dt))
+    # reply = b''
+    # reply += b'b'
+    # reply += b'x'
+    # reply += b's'
+    # reply += bytes(struct.pack('h',size))                  
+    # dt = 1000
+    # for m in range(size):
+    #     reply += bytes(struct.pack("l", dt))
+    # write(ser, reply)
+
 
     count = 0
     while count < 200:
@@ -96,26 +98,26 @@ if __name__ == '__main__':
                 print("lengths ",chr(msg[1])," ",xlen,chr(msg[6])," ",ylen)
                 
                 if xlen <= ylen:
-                    if xlen < 2000:
+                    if xlen < 3000-size:
                         reply = b''
                         reply += b'b'
                         reply += b'x'
                         reply += b's'
-                        reply += bytes([size])                  
+                        reply += bytes(struct.pack('<h',size))                   
                         dt = 1000
                         for m in range(size):
-                            reply += bytes(struct.pack("l", dt))
+                            reply += bytes(struct.pack("<l", dt))
                         write(ser, reply)
                 else:
-                    if ylen < 2000:
+                    if ylen < 3000-size:
                         reply = b''
                         reply += b'b'
                         reply += b'y'
                         reply += b's'
-                        reply += bytes([size])                  
+                        reply += bytes(struct.pack('<h',size))                  
                         dt = 1000
                         for m in range(size):
-                            reply += bytes(struct.pack("l", dt))
+                            reply += bytes(struct.pack("<l", dt))
                         write(ser, reply)
 
 
