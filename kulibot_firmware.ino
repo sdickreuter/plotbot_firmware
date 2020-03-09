@@ -15,14 +15,11 @@ struct dtData {
 
 // 1500 * 4 * 64 bit = 48 kbytes, Teensy 3.2 has 64 kbytes of RAM
 // 3000 * 2* ( 32 bit + 8 bit) = 30 kbytes
-CircularBuffer<dtData, 2000> xsteps;
-CircularBuffer<dtData, 2000> ysteps;
+CircularBuffer<dtData, 3000> xsteps;
+CircularBuffer<dtData, 3000> ysteps;
 
 //SerialTransfer transferbuffer;
 PacketSerial_<COBS, 0, 512> myPacketSerial;
-
-bool datawasrequested = false;
-bool fillbuffer = false;
 
 
 #define button 0
@@ -142,6 +139,21 @@ Stepper stepper_top(200, BOTTOM_DIR, BOTTOM_STEP, BOTTOM_MS1, BOTTOM_MS2, BOTTOM
 // }
 
 
+void updatex() {
+  //StepData x = { micros(), 1 };
+  //xsteps.push(x);
+  dtData x;
+  x = xsteps.pop();
+  delayMicroseconds(100);
+}
+
+void updatey() {
+  dtData y;
+  y = ysteps.pop();
+  delayMicroseconds(100);
+}
+
+
 void setup() {
   stepper_bottom.setMicrostepping(3);
   stepper_top.setMicrostepping(3);
@@ -184,6 +196,12 @@ void setup() {
   // onPacketReceived function below.
   myPacketSerial.setPacketHandler(&onPacketReceived);
 
+  PITimer1.set_callback(updatex);
+  PITimer1.period(0.001);
+  PITimer1.start();
+  PITimer2.set_callback(updatey);
+  PITimer2.period(0.002);
+  PITimer2.start();
 }
 
 void update_switches() {
@@ -303,7 +321,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         data.dt = dt;
         xsteps.push(data);
       }
-      datawasrequested = false;
 
     } else if (axis == 'y') {
       for (byte c=0; c<size; c++) {
@@ -313,7 +330,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         data.dt = dt;
         ysteps.push(data);
       }
-      datawasrequested = false;
     }
   // 'h' -> home motors
   } else if (command == 'h') {
@@ -329,12 +345,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   } else if (command == 'd') {
     stepper_top.disableDriver();
     stepper_bottom.disableDriver();
-  // 'f' -> start requesting data
-  }  else if (command == 'f') {
-    fillbuffer = true;
-  // 's' -> stop requesting data
-  } else if (command == 's') {
-    fillbuffer = false;
   // 'l' -> send buffer lengths
   } else if (command == 'l') {
     char axis = *(buffer + 1);
@@ -355,41 +365,10 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 }
 
 
-void request_data(char axis)
-{
-  uint8_t transmitBuffer[128];
-  transmitBuffer[0] = 'r';
-  transmitBuffer[1] = axis;
-  transmitBuffer[2] = 100;
-  myPacketSerial.send(transmitBuffer, 3);
-  datawasrequested = true;
-}
-
-
-unsigned long xtime = 0;
-unsigned long ytime = 0;
-
-
 void loop() {
   update_switches();
 
   myPacketSerial.update();
-
-  if (!datawasrequested) {
-    if ( (fillbuffer && millis() - ytime >= 100) 
-      && (ysteps.available() > 200) 
-      && (ysteps.available() >= xsteps.available()) ) {    
-        request_data('y');
-        ytime = millis();
-    }
-
-    if ( (fillbuffer && millis() - xtime >= 100) 
-      && (xsteps.available() > 200) 
-      && (xsteps.available() >= ysteps.available()) ) {
-        request_data('x');
-        xtime = millis();
-    }
-  }
 
   button_bounce.update();
   up_bounce.update();

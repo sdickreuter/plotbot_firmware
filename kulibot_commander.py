@@ -56,54 +56,67 @@ if __name__ == '__main__':
     time.sleep(2) # allow some time for the Arduino to completely reset
     
 
-    write(ser, b'e')
+    #write(ser, b'e')
 
+    #write(ser, b'h')
 
-    write(ser, b'h')
+    # homed = False
+    # while not homed:
+    #     msg = read(ser)
+    #     if len(msg) > 1:
+    #         if msg[0] == ord('r'):
+    #             print(msg,"->", "homing finished")
+    #             homed = True
 
-    homed = False
-    while not homed:
-        msg = read(ser)
-        if len(msg) > 1:
-            if msg[0] == ord('r'):
-                print(msg,"->", "homing finished")
-                homed = True
+    #write(ser, b'f')
 
-    write(ser, b'f')
+    size = 500
+
+    reply = b''
+    reply += b'b'
+    reply += b'x'
+    reply += b's'
+    reply += bytes([size])                  
+    dt = 1000
+    for m in range(size):
+        reply += bytes(struct.pack("l", dt))
 
     count = 0
     while count < 200:
-        reply = b''
+        msg = b'l'
+        write(ser, msg)
+
         msg = b''
-
         msg = read(ser)
+        #print(msg)
         if len(msg) > 1:
-            #print(chr(msg[0]))
-            if msg[0] == ord('r'):                
-                #print('msg',chr(msg[0]),chr(msg[1])," size ",(msg[2]))
-                axis = msg[1]
-                size = msg[2]
-
-                #print("r",msg[1],"size",size)
-                reply += b'b'
-                reply += bytes([axis])
-                reply += b's'
-                reply += bytes([size])                  
-                dt = 1000
-                for m in range(size):
-                    reply += bytes(struct.pack("l", dt))
-
-                #print('msg',reply)
-                write(ser, reply)
-
-                reply = b'l'
-                reply += bytes([axis])
-                write(ser, reply)
-
-            elif msg[0] == ord("l"): 
-                #print("len ",len(msg),"  ",msg, " ", ':'.join(hex(x)[2:] for x in msg))
-                #print(msg[2:4].encode('hex'))
-                print("length ",chr(msg[1])," ",struct.unpack('<l',msg[2:6])[0],chr(msg[6])," ",struct.unpack('<l',msg[7:11])[0])
+            if msg[0] == ord("l"): 
+                xlen = struct.unpack('<l',msg[2:6])[0]
+                ylen = struct.unpack('<l',msg[7:11])[0]
+                print("lengths ",chr(msg[1])," ",xlen,chr(msg[6])," ",ylen)
+                
+                if xlen <= ylen:
+                    if xlen < 2000:
+                        reply = b''
+                        reply += b'b'
+                        reply += b'x'
+                        reply += b's'
+                        reply += bytes([size])                  
+                        dt = 1000
+                        for m in range(size):
+                            reply += bytes(struct.pack("l", dt))
+                        write(ser, reply)
+                else:
+                    if ylen < 2000:
+                        reply = b''
+                        reply += b'b'
+                        reply += b'y'
+                        reply += b's'
+                        reply += bytes([size])                  
+                        dt = 1000
+                        for m in range(size):
+                            reply += bytes(struct.pack("l", dt))
+                        write(ser, reply)
 
 
 
