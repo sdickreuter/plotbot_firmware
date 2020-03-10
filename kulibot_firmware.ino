@@ -9,7 +9,7 @@
 
 // struct for storing step timings
 struct dtData {
-  long dt;
+  float dt;
   int action;
 };
 
@@ -74,83 +74,111 @@ Stepper stepper_top(200, BOTTOM_DIR, BOTTOM_STEP, BOTTOM_MS1, BOTTOM_MS2, BOTTOM
 
 #define DELAYMU 200
 
-// void forward_top(int arg_cnt, char **args) {
-//   Stream *s = cmdGetStream();
-//   int n = 0;
-//   if(arg_cnt > 0) {
-//       n = atoi(args[1]);
-//   }
-//   s->print("top, ");
-//   s->print(n);
-//   s->println(" steps forwards");
-//   stepper_top.set_dir(false);
-//   for (int i = 0; i<n; i++) {
-//     step_top();
-//     delayMicroseconds(DELAYMU);
-//   }
-// }
+void step_top() {
+  //topright_bounce.update();
+  //topleft_bounce.update();
+  if (stepper_top.dir < 0) {
+    if (topright_bounce.read()==HIGH)  {
+      stepper_top.step();
+    }
+  } else {
+    if (topleft_bounce.read()==HIGH)  {
+      stepper_top.step();
+    }
+  }
+}
 
-// void backward_top(int arg_cnt, char **args) {
-//   Stream *s = cmdGetStream();
-//   int n = 0;
-//   if(arg_cnt > 0) {
-//       n = atoi(args[1]);
-//   }
-//   s->print("top, ");
-//   s->print(n);
-//   s->println(" steps backwards");
-//   stepper_top.set_dir(true);
-//   for (int i = 0; i<n; i++) {
-//     step_top();
-//     delayMicroseconds(DELAYMU);
-//   }
-// }
+void step_bottom() {
+  //bottomright_bounce.update();
+  //bottomleft_bounce.update();
+  if (stepper_bottom.dir > 0) {
+    if (bottomright_bounce.read()==HIGH)  {
+      stepper_bottom.step();
+    }
+  } else {
+    if (bottomleft_bounce.read()==HIGH)  {
+      stepper_bottom.step();
+    }
+  }
+}
 
-// void forward_bottom(int arg_cnt, char **args) {
-//   Stream *s = cmdGetStream();
-//   int n = 0;
-//   if(arg_cnt > 0) {
-//       n = atoi(args[1]);
-//   }
-//   s->print("bottom, ");
-//   s->print(n);
-//   s->println(" steps forwards");
-//   stepper_bottom.set_dir(true);
-//   for (int i = 0; i<n; i++) {
-//     step_bottom();
-//     delayMicroseconds(DELAYMU);
-//   }
-// }
+void forward_top(int n) {
+  stepper_top.set_dir(false);
+  for (int i = 0; i<n; i++) {
+    step_top();
+    delayMicroseconds(DELAYMU);
+  }
+}
 
-// void backward_bottom(int arg_cnt, char **args) {
-//   Stream *s = cmdGetStream();
-//   int n = 0;
-//   if(arg_cnt > 0) {
-//       n = atoi(args[1]);
-//   }
-//   s->print("bottom, ");
-//   s->print(n);
-//   s->println(" steps backwards");
-//   stepper_bottom.set_dir(false);
-//   for (int i = 0; i<n; i++) {
-//     step_bottom();
-//     delayMicroseconds(DELAYMU);
-//   }
-// }
+void backward_top(int n) {
+  stepper_top.set_dir(true);
+  for (int i = 0; i<n; i++) {
+    step_top();
+    delayMicroseconds(DELAYMU);
+  }
+}
+
+void forward_bottom(int n) {
+  stepper_bottom.set_dir(true);
+  for (int i = 0; i<n; i++) {
+    step_bottom();
+    delayMicroseconds(DELAYMU);
+  }
+}
+
+void backward_bottom(int n) {
+  stepper_bottom.set_dir(false);
+  for (int i = 0; i<n; i++) {
+    step_bottom();
+    delayMicroseconds(DELAYMU);
+  }
+}
+
+
+float absolute(float f) {
+  if (f < 0.0) {
+    return -f;
+  } else {
+    return f;
+  }
+}
 
 
 void updatex() {
-  //StepData x = { micros(), 1 };
-  //xsteps.push(x);
-  dtData x;
-  x = xsteps.pop();
-  delayMicroseconds(100);
+  if (xsteps.size() > 0) {
+    dtData x;
+    x = xsteps.pop();
+    PITimer1.period(absolute(x.dt));
+    if (x.dt < 0.0) {
+        stepper_top.set_dir(true);   
+    }
+    else {
+        stepper_top.set_dir(false);
+    }
+    //stepper_top.step();
+    step_top();
+  } else {
+    PITimer1.stop();
+  }
 }
 
+
 void updatey() {
-  dtData y;
-  y = ysteps.pop();
-  delayMicroseconds(100);
+  if (ysteps.size() > 0) {
+    dtData y;
+    y = ysteps.pop();
+    PITimer2.period(absolute(y.dt));
+    if (y.dt < 0.0) {
+        stepper_bottom.set_dir(false);   
+    }
+    else {
+        stepper_bottom.set_dir(true);
+    }
+    //stepper_bottom.step();
+    step_bottom();
+  } else {
+    PITimer2.stop();
+  }
 }
 
 
@@ -197,11 +225,11 @@ void setup() {
   myPacketSerial.setPacketHandler(&onPacketReceived);
 
   PITimer1.set_callback(updatex);
-  PITimer1.period(0.001);
-  PITimer1.start();
+  //PITimer1.period(0.001);
+  //PITimer1.start();
   PITimer2.set_callback(updatey);
-  PITimer2.period(0.002);
-  PITimer2.start();
+  //PITimer2.period(0.002);
+  //PITimer2.start();
 }
 
 void update_switches() {
@@ -209,35 +237,6 @@ void update_switches() {
 	topleft_bounce.update();
 	bottomleft_bounce.update();
 	bottomright_bounce.update();     
-}
-
-
-void step_top() {
-	topright_bounce.update();
-	topleft_bounce.update();
-	if (stepper_top.dir < 0) {
-		if (topright_bounce.read()==HIGH)  {
-      stepper_top.step();
-		}
-	} else {
-    if (topleft_bounce.read()==HIGH)  {
-      stepper_top.step();
-		}
-	}
-}
-
-void step_bottom() {
-	bottomright_bounce.update();
-	bottomleft_bounce.update();
-	if (stepper_bottom.dir > 0) {
-		if (bottomright_bounce.read()==HIGH)  {
-      stepper_bottom.step();
-		}
-	} else {
-    if (bottomleft_bounce.read()==HIGH)  {
-      stepper_bottom.step();
-		}
-	}
 }
 
 
@@ -286,13 +285,19 @@ void home_motors() {
   stepper_top.set_dir(false);
   stepper_bottom.set_dir(true);
 
-  for (int i = 0; i<100; i++) {
+  for (int i = 0; i<10000; i++) {
     stepper_top.step();
     stepper_bottom.step();
     delayMicroseconds(DELAYMU);
   }
   
 }
+
+
+union union_float {
+   byte b[4];
+   float f;
+} u;
 
 
 // This is our handler callback function.
@@ -318,42 +323,54 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     }
     offset+=2;
 
-    long dt=0;
+    union_float dt;
 
     if (axis == 'x') {
       for (uint16_t c=0; c<size; c++) {
         for (byte i=0; i<4; i++)     {
-          dt+= (*(buffer+offset+i))<<(i*8);
+          dt.b[i] = *(buffer+offset+i);
         }
-        data.dt = dt;
+        data.dt = dt.f;
         xsteps.push(data);
         offset += 4;
       }
-
     } else if (axis == 'y') {
       for (long c=0; c<size; c++) {
         for (byte i=0; i<4; i++)     {
-          dt+= (*(buffer+offset+i))<<(i*8);
+          dt.b[i] = *(buffer+offset+i);
         }
-        data.dt = dt;
+        data.dt = dt.f;
         ysteps.push(data);
         offset += 4;
       }
     }
+    
+
+    // char fchar[8]; // Buffer big enough for 7-character float
+    // dtostrf(absolute(data.dt), 6, 2, fchar); // Leave room for too large numbers!
+    // for (byte i=0; i<8; i++) {
+    //   transmitBuffer[i] = fchar[i];
+    // }
+    // myPacketSerial.send(transmitBuffer, 8);
+
+
   // 'h' -> home motors
   } else if (command == 'h') {
     home_motors();
-    transmitBuffer[0] = 'h';
-    transmitBuffer[1] = 'f';
+    transmitBuffer[0] = 'o';
+    transmitBuffer[1] = 'k';
     myPacketSerial.send(transmitBuffer, 2);
+
   // 'e' -> enable motors
   } else if (command == 'e') {
     stepper_top.enableDriver();
     stepper_bottom.enableDriver();
+
   // 'd' -> disable motors
   } else if (command == 'd') {
     stepper_top.disableDriver();
     stepper_bottom.disableDriver();
+
   // 'l' -> send buffer lengths
   } else if (command == 'l') {
     char axis = *(buffer + 1);
@@ -370,6 +387,25 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         transmitBuffer[i+7]=((size>>(i*8)) & 0xff);
     }
     myPacketSerial.send(transmitBuffer, 11);
+  
+  // 'm' -> start moving
+  } else if (command == 'm') {
+    dtData x;
+    x = ysteps.pop();
+    PITimer1.period(absolute(x.dt));
+    //PITimer1.period(0.1);
+    dtData y;
+    y = ysteps.pop();
+    PITimer2.period(absolute(y.dt));
+    //PITimer2.period(0.1);
+
+    PITimer1.start();
+    PITimer2.start() ;   
+
+  // 's' -> make steps
+  } else if (command == 's') {
+    byte offset = 1;
+    char axis = *(buffer + offset);  
   }
 }
 
@@ -379,39 +415,39 @@ void loop() {
 
   myPacketSerial.update();
 
-  button_bounce.update();
-  up_bounce.update();
-  down_bounce.update();
-  left_bounce.update();
-  right_bounce.update();
+  // button_bounce.update();
+  // up_bounce.update();
+  // down_bounce.update();
+  // left_bounce.update();
+  // right_bounce.update();
 
-  if (button_bounce.read()==HIGH) {
-    home_motors();  
-  } 
-  if (up_bounce.read()==HIGH) {
-    stepper_top.enableDriver();
-    stepper_top.set_dir(true);
-    step_top();
-    delayMicroseconds(1000);
-  } 
-  if (down_bounce.read()==HIGH) {
-    stepper_top.enableDriver();
-    stepper_top.set_dir(false);
-		step_top();
-    delayMicroseconds(1000);
-  }
-  if (left_bounce.read()==HIGH) {
-    stepper_bottom.enableDriver();
-    stepper_bottom.set_dir(true);
-		step_bottom();
-    delayMicroseconds(1000);
-  }
-  if (right_bounce.read()==HIGH) {
-    stepper_bottom.enableDriver();
-    stepper_bottom.set_dir(false);
-		step_bottom();
-    delayMicroseconds(1000);
-  }
+  // if (button_bounce.read()==HIGH) {
+  //   home_motors();  
+  // } 
+  // if (up_bounce.read()==HIGH) {
+  //   stepper_top.enableDriver();
+  //   stepper_top.set_dir(true);
+  //   step_top();
+  //   delayMicroseconds(1000);
+  // } 
+  // if (down_bounce.read()==HIGH) {
+  //   stepper_top.enableDriver();
+  //   stepper_top.set_dir(false);
+		// step_top();
+  //   delayMicroseconds(1000);
+  // }
+  // if (left_bounce.read()==HIGH) {
+  //   stepper_bottom.enableDriver();
+  //   stepper_bottom.set_dir(true);
+		// step_bottom();
+  //   delayMicroseconds(1000);
+  // }
+  // if (right_bounce.read()==HIGH) {
+  //   stepper_bottom.enableDriver();
+  //   stepper_bottom.set_dir(false);
+		// step_bottom();
+  //   delayMicroseconds(1000);
+  // }
 
 
 

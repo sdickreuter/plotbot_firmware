@@ -4,6 +4,7 @@ import glob
 import serial
 import struct
 from cobs import cobs
+import numpy as np
 
 # from: https://stackoverflow.com/a/14224477
 def serial_ports():
@@ -47,6 +48,40 @@ def write(ser, msg):
     ser.write(msg)
 
 
+def write_timings(timings, axis):
+    reply = b''
+    reply += b'b'
+    reply += axis
+    reply += b's'
+    reply += bytes(struct.pack('<h',len(timings)))                   
+    for i in range(len(timings)):
+        reply += bytes(struct.pack("<f", timings[i]))
+    write(ser, reply)
+    
+    # msg = b''
+    # while len(msg) < 1:
+    #     msg = read(ser)
+        
+    #     if len(msg) > 1:
+    #         print(msg)
+
+
+def read_bufferlength():
+    msg = b'l'
+    write(ser, msg)
+
+    msg = b''
+    while len(msg) < 1:
+        msg = read(ser)
+    
+    if len(msg) > 1:
+        if msg[0] == ord("l"): 
+            xlen = struct.unpack('<l',msg[2:6])[0]
+            ylen = struct.unpack('<l',msg[7:11])[0]
+            return xlen, ylen
+    return None, None
+
+
 if __name__ == '__main__':
 
     serialports = serial_ports()
@@ -54,71 +89,55 @@ if __name__ == '__main__':
     ser = serial.Serial(serialports[0], timeout=0.3)
 
     time.sleep(2) # allow some time for the Arduino to completely reset
-    
 
-    #write(ser, b'e')
+    # enable motors
+    write(ser, b'e')
 
-    #write(ser, b'h')
+    # home motors
+    write(ser, b'h')
+    homed = False
+    while not homed:
+        msg = read(ser)
+        if len(msg) > 1:
+            if msg == b'ok':
+                print(msg,"->", "homing finished")
+                homed = True
 
-    # homed = False
-    # while not homed:
-    #     msg = read(ser)
-    #     if len(msg) > 1:
-    #         if msg[0] == ord('r'):
-    #             print(msg,"->", "homing finished")
-    #             homed = True
+    timings = np.repeat(0.0002, 2500)
+    write_timings(timings,b'x')
+    write_timings(timings,b'y')
+    print("buffer length",read_bufferlength())
 
-    #write(ser, b'f')
+    time.sleep(1)
+
+    write(ser, b'm')
+
+    for i in range(20):
+        #print("buffer length",read_bufferlength())
+        print(i)
+        time.sleep(0.5)
+
+    write(ser, b'd')
+
+
+    raise RuntimeError
 
     size = 666
 
-    # reply = b''
-    # reply += b'b'
-    # reply += b'x'
-    # reply += b's'
-    # reply += bytes(struct.pack('h',size))                  
-    # dt = 1000
-    # for m in range(size):
-    #     reply += bytes(struct.pack("l", dt))
-    # write(ser, reply)
-
-
     count = 0
     while count < 200:
-        msg = b'l'
-        write(ser, msg)
 
-        msg = b''
-        msg = read(ser)
-        #print(msg)
-        if len(msg) > 1:
-            if msg[0] == ord("l"): 
-                xlen = struct.unpack('<l',msg[2:6])[0]
-                ylen = struct.unpack('<l',msg[7:11])[0]
-                print("lengths ",chr(msg[1])," ",xlen,chr(msg[6])," ",ylen)
-                
-                if xlen <= ylen:
-                    if xlen < 3000-size:
-                        reply = b''
-                        reply += b'b'
-                        reply += b'x'
-                        reply += b's'
-                        reply += bytes(struct.pack('<h',size))                   
-                        dt = 1000
-                        for m in range(size):
-                            reply += bytes(struct.pack("<l", dt))
-                        write(ser, reply)
-                else:
-                    if ylen < 3000-size:
-                        reply = b''
-                        reply += b'b'
-                        reply += b'y'
-                        reply += b's'
-                        reply += bytes(struct.pack('<h',size))                  
-                        dt = 1000
-                        for m in range(size):
-                            reply += bytes(struct.pack("<l", dt))
-                        write(ser, reply)
+        xlen, ylen = read_bufferlength()
+        
+        if xlen is not None:        
+            if xlen <= ylen:
+                if xlen < 3000-size:
+                    timings = np.repeat(100000, 500)
+                    write_timings(timings,b'x')
+            else:
+                if ylen < 3000-size:
+                    timings = np.repeat(100000, 500)
+                    write_timings(timings,b'y')
 
 
 
@@ -129,8 +148,6 @@ if __name__ == '__main__':
         #    print(count)
 
     time.sleep(1)
-
-    write(ser, b's')
 
     write(ser, b'd')
 
