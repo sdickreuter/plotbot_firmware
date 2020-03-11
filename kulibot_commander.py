@@ -5,6 +5,7 @@ import serial
 import struct
 from cobs import cobs
 import numpy as np
+from scipy import signal
 
 # from: https://stackoverflow.com/a/14224477
 def serial_ports():
@@ -82,13 +83,72 @@ def read_bufferlength():
     return None, None
 
 
+def generate_sine_movement(t, freq = 0.001, phase = 0.0,dtmin = 0.001, dtmax = 0.005):
+    y = np.sin(2*np.pi*t*freq+phase)*dtmax
+    dt = np.zeros(len(y))
+    dt[y < 0] = y[y < 0] + dtmin + dtmax
+    dt[y >= 0] = y[y >= 0] - dtmin - dtmax
+    return dt
+
+    # y = (np.sin(2*np.pi*t*freq+phase)*0.5+1)*dtmax
+    # y += dtmin
+    # return y
+
+def generate_triangle_movement(t, freq = 0.001, phase = 0.0,dtmin = 0.001, dtmax = 0.005):
+    # y = signal.sawtooth(2*np.pi*t*freq+phase,0.5)*dtmax
+    # dt = np.zeros(len(y))
+    # dt[y < 0] = y[y < 0] + dtmin + dtmax
+    # dt[y >= 0] = y[y >= 0] - dtmin - dtmax
+    # return dt
+    # y = (np.sin(2*np.pi*t*freq+phase)*0.5+1)*dtmax
+    # y += dtmin
+    # return y
+    dt = np.zeros(len(t))
+    for i in range(len(t)):
+        if t[i]%(1/freq) > (1/(2*freq)):
+            dt[i] = 0.002
+        else:
+            dt[i] = -0.002
+    return dt
+
 if __name__ == '__main__':
+    
+    # import matplotlib.pyplot as plt
+
+    # timings = generate_triangle_movement(np.arange(start=0,stop=10000),phase=np.pi)
+
+    # plt.plot(timings)
+    # plt.show()
+
+    # raise RuntimeError
+
 
     serialports = serial_ports()
     print(serialports)
     ser = serial.Serial(serialports[0], timeout=0.3)
 
     time.sleep(2) # allow some time for the Arduino to completely reset
+
+
+
+    # timings = generate_triangle_movement(np.arange(start=0,stop=256),freq = 0.01)
+    # write_timings(timings,b'x')
+    # write_timings(timings,b'y')
+
+
+    # write(ser, b'r')
+
+    # msg = b''
+    # while len(msg) < 1:
+    #     msg = read(ser)
+
+    # print(len(msg)/4)
+    # i = 0
+    # while i < (len(timings)):
+    #     print(i,struct.unpack('<f',msg[i:i+4])[0],timings[i])
+    #     i += 4
+
+    # raise RuntimeError
 
     # enable motors
     write(ser, b'e')
@@ -103,42 +163,61 @@ if __name__ == '__main__':
                 print(msg,"->", "homing finished")
                 homed = True
 
-    timings = np.repeat(0.0002, 2500)
+    timings = np.repeat(0.002, 500)
     write_timings(timings,b'x')
     write_timings(timings,b'y')
     print("buffer length",read_bufferlength())
 
-    time.sleep(1)
+    time.sleep(0.1)
+    #write(ser, b'c')
 
     write(ser, b'm')
 
-    for i in range(20):
-        #print("buffer length",read_bufferlength())
-        print(i)
-        time.sleep(0.5)
 
-    write(ser, b'd')
+    # timings = np.repeat(-0.002, 500)
+    # write_timings(timings,b'x')
+    # write_timings(timings,b'y')
+    # print("buffer length",read_bufferlength())
 
 
-    raise RuntimeError
+    # timings = np.repeat(0.002, 500)
+    # write_timings(timings,b'x')
+    # write_timings(timings,b'y')
+    # print("buffer length",read_bufferlength())
+
+
+    # for i in range(20):
+    #     #print("buffer length",read_bufferlength())
+    #     print(i)
+    #     time.sleep(0.5)
+
+    # write(ser, b'd')
+    # raise RuntimeError
+
 
     size = 666
 
     count = 0
+    tx = 0
+    ty = 0
     while count < 200:
 
         xlen, ylen = read_bufferlength()
         
-        if xlen is not None:        
+        if xlen is not None:
             if xlen <= ylen:
                 if xlen < 3000-size:
-                    timings = np.repeat(100000, 500)
+                    timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
+                    tx += size
                     write_timings(timings,b'x')
             else:
                 if ylen < 3000-size:
-                    timings = np.repeat(100000, 500)
+                    #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
+                    timings = generate_sine_movement(np.arange(start=ty,stop=ty+size))
+                    ty += size
                     write_timings(timings,b'y')
 
+            #print("buffer length",read_bufferlength())
 
 
         time.sleep(0.1)

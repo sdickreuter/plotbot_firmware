@@ -74,14 +74,19 @@ Stepper stepper_top(200, BOTTOM_DIR, BOTTOM_STEP, BOTTOM_MS1, BOTTOM_MS2, BOTTOM
 
 #define DELAYMU 200
 
+dtData dtx;
+dtData dty;
+
+
+
 void step_top() {
-  //topright_bounce.update();
-  //topleft_bounce.update();
   if (stepper_top.dir < 0) {
+    //topright_bounce.update();
     if (topright_bounce.read()==HIGH)  {
       stepper_top.step();
     }
   } else {
+    //topleft_bounce.update();
     if (topleft_bounce.read()==HIGH)  {
       stepper_top.step();
     }
@@ -89,13 +94,13 @@ void step_top() {
 }
 
 void step_bottom() {
-  //bottomright_bounce.update();
-  //bottomleft_bounce.update();
   if (stepper_bottom.dir > 0) {
+    //bottomright_bounce.update();
     if (bottomright_bounce.read()==HIGH)  {
       stepper_bottom.step();
     }
   } else {
+    //bottomleft_bounce.update();
     if (bottomleft_bounce.read()==HIGH)  {
       stepper_bottom.step();
     }
@@ -135,49 +140,40 @@ void backward_bottom(int n) {
 }
 
 
-float absolute(float f) {
-  if (f < 0.0) {
-    return -f;
-  } else {
-    return f;
-  }
-}
-
-
 void updatex() {
-  if (xsteps.size() > 0) {
-    dtData x;
-    x = xsteps.pop();
-    PITimer1.period(absolute(x.dt));
-    if (x.dt < 0.0) {
+  if (!xsteps.isEmpty()) {
+    dtx = xsteps.shift();
+    if (dtx.dt < 0.0) {
+        PITimer1.period(-1.0*dtx.dt);
         stepper_top.set_dir(true);   
     }
     else {
+        PITimer1.period(dtx.dt);
         stepper_top.set_dir(false);
     }
-    //stepper_top.step();
-    step_top();
+    stepper_top.step();
+    //step_top();
   } else {
-    PITimer1.stop();
+    //PITimer1.stop();
   }
 }
 
 
 void updatey() {
-  if (ysteps.size() > 0) {
-    dtData y;
-    y = ysteps.pop();
-    PITimer2.period(absolute(y.dt));
-    if (y.dt < 0.0) {
+  if (!ysteps.isEmpty()) {
+    dty = ysteps.shift();
+    if (dty.dt < 0.0) {
+        PITimer2.period(-1.0*dty.dt);
         stepper_bottom.set_dir(false);   
     }
     else {
+        PITimer2.period(dty.dt);
         stepper_bottom.set_dir(true);
     }
-    //stepper_bottom.step();
-    step_bottom();
+    stepper_bottom.step();
+    //step_bottom();
   } else {
-    PITimer2.stop();
+    //PITimer2.stop();
   }
 }
 
@@ -285,7 +281,7 @@ void home_motors() {
   stepper_top.set_dir(false);
   stepper_bottom.set_dir(true);
 
-  for (int i = 0; i<10000; i++) {
+  for (int i = 0; i<20000; i++) {
     stepper_top.step();
     stepper_bottom.step();
     delayMicroseconds(DELAYMU);
@@ -300,6 +296,8 @@ union union_float {
 } u;
 
 
+uint8_t transmitBuffer[1024];
+
 // This is our handler callback function.
 // When an encoded packet is received and decoded, it will be delivered here.
 // The `buffer` is a pointer to the decoded byte array. `size` is the number of
@@ -307,7 +305,6 @@ union union_float {
 void onPacketReceived(const uint8_t* buffer, size_t size)
 {
   char command = *(buffer);
-  uint8_t transmitBuffer[128];
 
   // 'b' -> fill buffer with data
   if (command == 'b') {
@@ -343,8 +340,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         ysteps.push(data);
         offset += 4;
       }
-    }
-    
+    } 
 
     // char fchar[8]; // Buffer big enough for 7-character float
     // dtostrf(absolute(data.dt), 6, 2, fchar); // Leave room for too large numbers!
@@ -352,7 +348,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     //   transmitBuffer[i] = fchar[i];
     // }
     // myPacketSerial.send(transmitBuffer, 8);
-
 
   // 'h' -> home motors
   } else if (command == 'h') {
@@ -390,23 +385,45 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'm' -> start moving
   } else if (command == 'm') {
-    dtData x;
-    x = ysteps.pop();
-    PITimer1.period(absolute(x.dt));
-    //PITimer1.period(0.1);
-    dtData y;
-    y = ysteps.pop();
-    PITimer2.period(absolute(y.dt));
-    //PITimer2.period(0.1);
+    //dtData x;
+    //x = ysteps.shift();
+    //PITimer1.period(x.dt);
+    PITimer1.period(0.01);
+    //dtData y;
+    //y = ysteps.shift();
+    //PITimer2.period(y.dt);
+    PITimer2.period(0.02);
 
     PITimer1.start();
-    PITimer2.start() ;   
+    PITimer2.start();   
 
   // 's' -> make steps
   } else if (command == 's') {
     byte offset = 1;
     char axis = *(buffer + offset);  
+  
+  // 'c' -> clear buffers
+  } else if (command == 'c') {
+    xsteps.clear();
+    ysteps.clear();
+
+  // 'r' -> read back x buffer, last 1024 bits
+  } else if (command == 'r') {
+    dtData data;
+    union_float dt; 
+    int offset = 0;
+    while (offset < 1020) {
+      data = xsteps.shift();
+      dt.f = data.dt;
+      transmitBuffer[offset+0] = dt.b[0];
+      transmitBuffer[offset+1] = dt.b[1];
+      transmitBuffer[offset+2] = dt.b[2];
+      transmitBuffer[offset+3] = dt.b[3];
+      offset += 4;      
+    }
+    myPacketSerial.send(transmitBuffer, offset);
   }
+
 }
 
 
