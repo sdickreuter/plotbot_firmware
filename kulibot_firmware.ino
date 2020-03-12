@@ -6,7 +6,7 @@
 #include <PacketSerial.h>
 
 //SerialTransfer transferbuffer;
-PacketSerial_<COBS, 0, 2048> myPacketSerial;
+PacketSerial_<COBS, 0, 4096> myPacketSerial;
 
 #define button 0
 #define up 4
@@ -279,10 +279,10 @@ void home_motors() {
 }
 
 
-union union_float {
+union union_long {
    byte b[4];
-   float f;
-} u;
+   long l;
+};
 
 
 uint8_t transmitBuffer[2024];
@@ -298,7 +298,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'b' -> fill buffer with data
   if (command == 'b') {
     dtData data;
-    byte offset = 1;
+    long offset = 1;
     char axis = *(buffer + offset);
     offset+=1;
     char action = *(buffer + offset);
@@ -309,14 +309,14 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     }
     offset+=2;
 
-    union_float dt;
+    union_long dt;
 
     if (axis == 'x') {
-      for (uint16_t c=0; c<size; c++) {
+      for (long c=0; c<size; c++) {
         for (byte i=0; i<4; i++)     {
           dt.b[i] = *(buffer+offset+i);
         }
-        data.dt = dt.f;
+        data.dt = dt.l;
         push_cb(&xsteps,data);
         offset += 4;
       }
@@ -325,7 +325,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         for (byte i=0; i<4; i++)     {
           dt.b[i] = *(buffer+offset+i);
         }
-        data.dt = dt.f;
+        data.dt = dt.l;
         push_cb(&ysteps,data);
         offset += 4;
       }
@@ -399,11 +399,11 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'r' -> read back x buffer, last 1024 bits
   } else if (command == 'r') {
     dtData data;
-    union_float dt; 
+    union_long dt; 
     int offset = 0;
     while (offset < 2040) {
       data = pop_cb(&xsteps);
-      dt.f = data.dt;
+      dt.l = data.dt;
       transmitBuffer[offset+0] = dt.b[0];
       transmitBuffer[offset+1] = dt.b[1];
       transmitBuffer[offset+2] = dt.b[2];

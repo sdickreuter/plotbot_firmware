@@ -54,9 +54,9 @@ def write_timings(timings, axis):
     reply += b'b'
     reply += axis
     reply += b's'
-    reply += bytes(struct.pack('<h',len(timings)))                   
+    reply += bytes(struct.pack('<H',len(timings)))                   
     for i in range(len(timings)):
-        reply += bytes(struct.pack("<f", timings[i]))
+        reply += bytes(struct.pack("<l", timings[i]))
     write(ser, reply)
     
     # msg = b''
@@ -135,9 +135,18 @@ if __name__ == '__main__':
 
     #timings = generate_triangle_movement(np.arange(start=0,stop=511),freq = 0.01)
     #timings = np.linspace(0,10,512)
-    timings = np.repeat(0.1234,512)
-    write_timings(timings,b'x')
+    timings = np.arange(start=0,stop=512)
+    write_timings(timings[:128],b'x')
+    write_timings(timings[:128],b'y')
+
+    write_timings(timings[128:128*2],b'x')
+    write_timings(timings[128:128*2],b'y')
+
+    write_timings(timings+256,b'x')
     write_timings(timings,b'y')
+
+    write_timings(timings-256,b'x')
+    write_timings(timings-256,b'y')
 
 
     write(ser, b'r')
@@ -148,9 +157,9 @@ if __name__ == '__main__':
 
     print(len(msg)/4)
     i = 0
-    while i < (len(timings)):
-        print(i,struct.unpack('<f',msg[i:i+4])[0],timings[i])
-        i += 4
+    while 4*i+4 < len(msg):
+        print(i,struct.unpack('<l',msg[i*4:i*4+4])[0],timings[i])
+        i += 1
 
     raise RuntimeError
 
