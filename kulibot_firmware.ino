@@ -1,26 +1,12 @@
 
 #include "Stepper.h"
+#include "CBuffer.h"
 #include <Bounce2.h>
 #include <PITimer.h>
 #include <PacketSerial.h>
 
-#define CIRCULAR_BUFFER_INT_SAFE
-#include "CircularBuffer.h"
-
-// struct for storing step timings
-struct dtData {
-  float dt;
-  int action;
-};
-
-// 1500 * 4 * 64 bit = 48 kbytes, Teensy 3.2 has 64 kbytes of RAM
-// 3000 * 2* ( 32 bit + 8 bit) = 30 kbytes
-CircularBuffer<dtData, 3000> xsteps;
-CircularBuffer<dtData, 3000> ysteps;
-
 //SerialTransfer transferbuffer;
 PacketSerial_<COBS, 0, 2048> myPacketSerial;
-
 
 #define button 0
 #define up 4
@@ -74,9 +60,11 @@ Stepper stepper_top(200, BOTTOM_DIR, BOTTOM_STEP, BOTTOM_MS1, BOTTOM_MS2, BOTTOM
 
 #define DELAYMU 200
 
+CBuffer xsteps;
+CBuffer ysteps;
+
 dtData dtx;
 dtData dty;
-
 
 
 void step_top() {
@@ -141,8 +129,8 @@ void backward_bottom(int n) {
 
 
 void updatex() {
-  if (!xsteps.isEmpty()) {
-    dtx = xsteps.shift();
+  if (length_cb(&xsteps) > 0) {
+    dtx = pop_cb(&xsteps);
     if (dtx.dt < 0.0) {
         PITimer1.period(-1.0*dtx.dt);
         stepper_top.set_dir(true);   
@@ -160,8 +148,8 @@ void updatex() {
 
 
 void updatey() {
-  if (!ysteps.isEmpty()) {
-    dty = ysteps.shift();
+  if (length_cb(&xsteps) > 0) {
+    dty = pop_cb(&ysteps);
     if (dty.dt < 0.0) {
         PITimer2.period(-1.0*dty.dt);
         stepper_bottom.set_dir(false);   
@@ -179,6 +167,7 @@ void updatey() {
 
 
 void setup() {
+
   stepper_bottom.setMicrostepping(3);
   stepper_top.setMicrostepping(3);
   
@@ -328,7 +317,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
           dt.b[i] = *(buffer+offset+i);
         }
         data.dt = dt.f;
-        xsteps.push(data);
+        push_cb(&xsteps,data);
         offset += 4;
       }
     } else if (axis == 'y') {
@@ -337,7 +326,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
           dt.b[i] = *(buffer+offset+i);
         }
         data.dt = dt.f;
-        ysteps.push(data);
+        push_cb(&ysteps,data);
         offset += 4;
       }
     } 
@@ -370,13 +359,13 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   } else if (command == 'l') {
     char axis = *(buffer + 1);
     long size;
-    size = (long) xsteps.size();
+    size = (long) length_cb(&xsteps);
     transmitBuffer[0] = 'l';
     transmitBuffer[1] = 'x';
     for (int i=0; i<4; i++) {
         transmitBuffer[i+2]=((size>>(i*8)) & 0xff);
     }
-    size = (long) ysteps.size();
+    size = (long) length_cb(&ysteps);
     transmitBuffer[6] = 'y';
     for (int i=0; i<4; i++) {
         transmitBuffer[i+7]=((size>>(i*8)) & 0xff);
@@ -386,13 +375,13 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'm' -> start moving
   } else if (command == 'm') {
     //dtData x;
-    //x = ysteps.shift();
+    //x = ysteps.pop();
     //PITimer1.period(x.dt);
     PITimer1.period(0.01);
     //dtData y;
-    //y = ysteps.shift();
+    //y = ysteps.pop();
     //PITimer2.period(y.dt);
-    PITimer2.period(0.02);
+    PITimer2.period(0.01);
 
     PITimer1.start();
     PITimer2.start();   
@@ -404,8 +393,10 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'c' -> clear buffers
   } else if (command == 'c') {
-    xsteps.clear();
-    ysteps.clear();
+    xsteps.head=0;
+    xsteps.tail=0;
+    ysteps.head=0;
+    ysteps.tail=0;
 
   // 'r' -> read back x buffer, last 1024 bits
   } else if (command == 'r') {
@@ -413,7 +404,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     union_float dt; 
     int offset = 0;
     while (offset < 1020) {
-      data = xsteps.shift();
+      data = pop_cb(&xsteps);
       dt.f = data.dt;
       transmitBuffer[offset+0] = dt.b[0];
       transmitBuffer[offset+1] = dt.b[1];
@@ -431,6 +422,8 @@ void loop() {
   update_switches();
 
   myPacketSerial.update();
+
+  //delayMicroseconds(50);
 
   // button_bounce.update();
   // up_bounce.update();

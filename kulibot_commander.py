@@ -74,7 +74,8 @@ def read_bufferlength():
     msg = b''
     while len(msg) < 1:
         msg = read(ser)
-    
+        time.sleep(0.05)
+
     if len(msg) > 1:
         if msg[0] == ord("l"): 
             xlen = struct.unpack('<l',msg[2:6])[0]
@@ -83,7 +84,7 @@ def read_bufferlength():
     return None, None
 
 
-def generate_sine_movement(t, freq = 0.001, phase = 0.0,dtmin = 0.001, dtmax = 0.005):
+def generate_sine_movement(t, freq = 0.002, phase = 0.0,dtmin = 0.002, dtmax = 0.008):
     y = np.sin(2*np.pi*t*freq+phase)*dtmax
     dt = np.zeros(len(y))
     dt[y < 0] = y[y < 0] + dtmin + dtmax
@@ -95,21 +96,21 @@ def generate_sine_movement(t, freq = 0.001, phase = 0.0,dtmin = 0.001, dtmax = 0
     # return y
 
 def generate_triangle_movement(t, freq = 0.001, phase = 0.0,dtmin = 0.001, dtmax = 0.005):
-    # y = signal.sawtooth(2*np.pi*t*freq+phase,0.5)*dtmax
-    # dt = np.zeros(len(y))
-    # dt[y < 0] = y[y < 0] + dtmin + dtmax
-    # dt[y >= 0] = y[y >= 0] - dtmin - dtmax
-    # return dt
+    y = signal.sawtooth(2*np.pi*t*freq+phase,0.5)*dtmax
+    dt = np.zeros(len(y))
+    dt[y < 0] = y[y < 0] + dtmin + dtmax
+    dt[y >= 0] = y[y >= 0] - dtmin - dtmax
+    return dt
     # y = (np.sin(2*np.pi*t*freq+phase)*0.5+1)*dtmax
     # y += dtmin
     # return y
-    dt = np.zeros(len(t))
-    for i in range(len(t)):
-        if t[i]%(1/freq) > (1/(2*freq)):
-            dt[i] = 0.002
-        else:
-            dt[i] = -0.002
-    return dt
+    # dt = np.zeros(len(t))
+    # for i in range(len(t)):
+    #     if t[i]%(1/freq) > (1/(2*freq)):
+    #         dt[i] = 0.002
+    #     else:
+    #         dt[i] = -0.002
+    # return dt
 
 if __name__ == '__main__':
     
@@ -125,7 +126,7 @@ if __name__ == '__main__':
 
     serialports = serial_ports()
     print(serialports)
-    ser = serial.Serial(serialports[0], timeout=0.3)
+    ser = serial.Serial(serialports[0], timeout=0.5)
 
     time.sleep(2) # allow some time for the Arduino to completely reset
 
@@ -149,6 +150,13 @@ if __name__ == '__main__':
     #     i += 4
 
     # raise RuntimeError
+    print("buffer length",read_bufferlength())
+
+    timings = np.repeat(0.002, 500)
+    write_timings(timings,b'x')
+    write_timings(timings,b'y')
+    print("buffer length",read_bufferlength())
+
 
     # enable motors
     write(ser, b'e')
@@ -207,13 +215,13 @@ if __name__ == '__main__':
         if xlen is not None:
             if xlen <= ylen:
                 if xlen < 3000-size:
-                    timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
+                    timings = generate_triangle_movement(np.arange(start=tx,stop=tx+size))
                     tx += size
                     write_timings(timings,b'x')
             else:
                 if ylen < 3000-size:
                     #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
-                    timings = generate_sine_movement(np.arange(start=ty,stop=ty+size))
+                    timings = generate_triangle_movement(np.arange(start=ty,stop=ty+size))
                     ty += size
                     write_timings(timings,b'y')
 
