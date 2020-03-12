@@ -279,9 +279,9 @@ void home_motors() {
 }
 
 
-union union_long {
+union union_float {
    byte b[4];
-   long l;
+   long f;
 };
 
 
@@ -309,15 +309,17 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     }
     offset+=2;
 
-    union_long dt;
+    union_float dt;
 
     if (axis == 'x') {
       for (long c=0; c<size; c++) {
         for (byte i=0; i<4; i++)     {
           dt.b[i] = *(buffer+offset+i);
         }
-        data.dt = dt.l;
+        data.dt = dt.f;
+        noInterrupts();
         push_cb(&xsteps,data);
+        interrupts();
         offset += 4;
       }
     } else if (axis == 'y') {
@@ -325,8 +327,10 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         for (byte i=0; i<4; i++)     {
           dt.b[i] = *(buffer+offset+i);
         }
-        data.dt = dt.l;
+        data.dt = dt.f;
+        noInterrupts(); 
         push_cb(&ysteps,data);
+        interrupts(); 
         offset += 4;
       }
     } 
@@ -399,11 +403,11 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'r' -> read back x buffer, last 1024 bits
   } else if (command == 'r') {
     dtData data;
-    union_long dt; 
+    union_float dt; 
     int offset = 0;
     while (offset < 2040) {
       data = pop_cb(&xsteps);
-      dt.l = data.dt;
+      dt.f = data.dt;
       transmitBuffer[offset+0] = dt.b[0];
       transmitBuffer[offset+1] = dt.b[1];
       transmitBuffer[offset+2] = dt.b[2];

@@ -56,7 +56,7 @@ def write_timings(timings, axis):
     reply += b's'
     reply += bytes(struct.pack('<H',len(timings)))                   
     for i in range(len(timings)):
-        reply += bytes(struct.pack("<l", timings[i]))
+        reply += bytes(struct.pack(">f", timings[i]))
     write(ser, reply)
     
     # msg = b''
@@ -130,46 +130,34 @@ if __name__ == '__main__':
 
     time.sleep(2) # allow some time for the Arduino to completely reset
 
-    write(ser, b'c')
+    # write(ser, b'c')
+
+    # timings = generate_triangle_movement(np.arange(start=0,stop=511),freq = 0.01)
+    # #timings = np.linspace(0,10,512)
+    # write_timings(timings,b'x')
+    # write_timings(timings,b'y')
+
+    # write(ser, b'r')
+
+    # msg = b''
+    # while len(msg) < 1:
+    #     msg = read(ser)
+
+    # print(len(msg)/4)
+    # i = 0
+    # while 4*i+4 < len(msg):
+    #     print(i,struct.unpack('>f',msg[i*4:i*4+4])[0],timings[i])
+    #     i += 1
+
+    # raise RuntimeError
 
 
-    #timings = generate_triangle_movement(np.arange(start=0,stop=511),freq = 0.01)
-    #timings = np.linspace(0,10,512)
-    timings = np.arange(start=0,stop=512)
-    write_timings(timings[:128],b'x')
-    write_timings(timings[:128],b'y')
+    # print("buffer length",read_bufferlength())
 
-    write_timings(timings[128:128*2],b'x')
-    write_timings(timings[128:128*2],b'y')
-
-    write_timings(timings+256,b'x')
-    write_timings(timings,b'y')
-
-    write_timings(timings-256,b'x')
-    write_timings(timings-256,b'y')
-
-
-    write(ser, b'r')
-
-    msg = b''
-    while len(msg) < 1:
-        msg = read(ser)
-
-    print(len(msg)/4)
-    i = 0
-    while 4*i+4 < len(msg):
-        print(i,struct.unpack('<l',msg[i*4:i*4+4])[0],timings[i])
-        i += 1
-
-    raise RuntimeError
-
-
-    print("buffer length",read_bufferlength())
-
-    timings = np.repeat(0.002, 500)
-    write_timings(timings,b'x')
-    write_timings(timings,b'y')
-    print("buffer length",read_bufferlength())
+    # timings = np.repeat(0.002, 500)
+    # write_timings(timings,b'x')
+    # write_timings(timings,b'y')
+    # print("buffer length",read_bufferlength())
 
 
     # enable motors
@@ -239,7 +227,7 @@ if __name__ == '__main__':
                     ty += size
                     write_timings(timings,b'y')
 
-            #print("buffer length",read_bufferlength())
+            print("buffer length",read_bufferlength())
 
 
         time.sleep(0.1)
