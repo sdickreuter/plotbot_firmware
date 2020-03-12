@@ -285,7 +285,7 @@ union union_float {
 } u;
 
 
-uint8_t transmitBuffer[1024];
+uint8_t transmitBuffer[2024];
 
 // This is our handler callback function.
 // When an encoded packet is received and decoded, it will be delivered here.
@@ -393,17 +393,15 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'c' -> clear buffers
   } else if (command == 'c') {
-    xsteps.head=0;
-    xsteps.tail=0;
-    ysteps.head=0;
-    ysteps.tail=0;
+    reset_cb(&xsteps);
+    reset_cb(&ysteps);
 
   // 'r' -> read back x buffer, last 1024 bits
   } else if (command == 'r') {
     dtData data;
     union_float dt; 
     int offset = 0;
-    while (offset < 1020) {
+    while (offset < 2040) {
       data = pop_cb(&xsteps);
       dt.f = data.dt;
       transmitBuffer[offset+0] = dt.b[0];
@@ -423,7 +421,7 @@ void loop() {
 
   myPacketSerial.update();
 
-  //delayMicroseconds(50);
+  delayMicroseconds(50);
 
   // button_bounce.update();
   // up_bounce.update();

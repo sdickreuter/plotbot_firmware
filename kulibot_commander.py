@@ -84,7 +84,7 @@ def read_bufferlength():
     return None, None
 
 
-def generate_sine_movement(t, freq = 0.002, phase = 0.0,dtmin = 0.002, dtmax = 0.008):
+def generate_sine_movement(t, freq = 0.001, phase = 0.0,dtmin = 0.002, dtmax = 0.008):
     y = np.sin(2*np.pi*t*freq+phase)*dtmax
     dt = np.zeros(len(y))
     dt[y < 0] = y[y < 0] + dtmin + dtmax
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     
     # import matplotlib.pyplot as plt
 
-    # timings = generate_triangle_movement(np.arange(start=0,stop=10000),phase=np.pi)
+    # timings = generate_sine_movement(np.arange(start=0,stop=10000),phase=np.pi)
 
     # plt.plot(timings)
     # plt.show()
@@ -130,26 +130,31 @@ if __name__ == '__main__':
 
     time.sleep(2) # allow some time for the Arduino to completely reset
 
+    write(ser, b'c')
 
 
-    # timings = generate_triangle_movement(np.arange(start=0,stop=256),freq = 0.01)
-    # write_timings(timings,b'x')
-    # write_timings(timings,b'y')
+    #timings = generate_triangle_movement(np.arange(start=0,stop=511),freq = 0.01)
+    #timings = np.linspace(0,10,512)
+    timings = np.repeat(0.1234,512)
+    write_timings(timings,b'x')
+    write_timings(timings,b'y')
 
 
-    # write(ser, b'r')
+    write(ser, b'r')
 
-    # msg = b''
-    # while len(msg) < 1:
-    #     msg = read(ser)
+    msg = b''
+    while len(msg) < 1:
+        msg = read(ser)
 
-    # print(len(msg)/4)
-    # i = 0
-    # while i < (len(timings)):
-    #     print(i,struct.unpack('<f',msg[i:i+4])[0],timings[i])
-    #     i += 4
+    print(len(msg)/4)
+    i = 0
+    while i < (len(timings)):
+        print(i,struct.unpack('<f',msg[i:i+4])[0],timings[i])
+        i += 4
 
-    # raise RuntimeError
+    raise RuntimeError
+
+
     print("buffer length",read_bufferlength())
 
     timings = np.repeat(0.002, 500)
