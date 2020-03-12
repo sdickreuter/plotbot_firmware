@@ -1,12 +1,25 @@
 
 #include "Stepper.h"
-#include "CBuffer.h"
 #include <Bounce2.h>
 #include <PITimer.h>
 #include <PacketSerial.h>
 
+#define CIRCULAR_BUFFER_INT_SAFE
+#include "CircularBuffer.h"
+
+// struct for storing step timings
+struct dtData {
+  float dt;
+  int action;
+};
+
+// 1500 * 4 * 64 bit = 48 kbytes, Teensy 3.2 has 64 kbytes of RAM
+// 3000 * 2* ( 32 bit + 8 bit) = 30 kbytes
+CircularBuffer<dtData, 3000> xsteps;
+CircularBuffer<dtData, 3000> ysteps;
+
 //SerialTransfer transferbuffer;
-PacketSerial_<COBS, 0, 4096> myPacketSerial;
+PacketSerial_<COBS, 0, 2048> myPacketSerial;
 
 #define button 0
 #define up 4
@@ -59,9 +72,6 @@ Stepper stepper_bottom(200, TOP_DIR, TOP_STEP, TOP_MS1,TOP_MS2, TOP_MS3, TOP_ENA
 Stepper stepper_top(200, BOTTOM_DIR, BOTTOM_STEP, BOTTOM_MS1, BOTTOM_MS2, BOTTOM_MS3, BOTTOM_ENABLE);
 
 #define DELAYMU 200
-
-CBuffer xsteps;
-CBuffer ysteps;
 
 dtData dtx;
 dtData dty;
@@ -129,8 +139,8 @@ void backward_bottom(int n) {
 
 
 void updatex() {
-  if (length_cb(&xsteps) > 0) {
-    dtx = pop_cb(&xsteps);
+  if (!xsteps.isEmpty()) {
+    dtx = xsteps.shift();
     if (dtx.dt < 0.0) {
         PITimer1.period(-1.0*dtx.dt);
         stepper_top.set_dir(true);   
@@ -148,8 +158,8 @@ void updatex() {
 
 
 void updatey() {
-  if (length_cb(&xsteps) > 0) {
-    dty = pop_cb(&ysteps);
+  if (!ysteps.isEmpty()) {
+    dty = ysteps.shift();
     if (dty.dt < 0.0) {
         PITimer2.period(-1.0*dty.dt);
         stepper_bottom.set_dir(false);   
@@ -317,9 +327,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
           dt.b[i] = *(buffer+offset+i);
         }
         data.dt = dt.f;
-        noInterrupts();
-        push_cb(&xsteps,data);
-        interrupts();
+        xsteps.push(data);
         offset += 4;
       }
     } else if (axis == 'y') {
@@ -328,9 +336,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
           dt.b[i] = *(buffer+offset+i);
         }
         data.dt = dt.f;
-        noInterrupts(); 
-        push_cb(&ysteps,data);
-        interrupts(); 
+        ysteps.push(data);
         offset += 4;
       }
     } 
@@ -363,13 +369,13 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   } else if (command == 'l') {
     char axis = *(buffer + 1);
     long size;
-    size = (long) length_cb(&xsteps);
+    size = (long) xsteps.size();
     transmitBuffer[0] = 'l';
     transmitBuffer[1] = 'x';
     for (int i=0; i<4; i++) {
         transmitBuffer[i+2]=((size>>(i*8)) & 0xff);
     }
-    size = (long) length_cb(&ysteps);
+    size = (long) ysteps.size();
     transmitBuffer[6] = 'y';
     for (int i=0; i<4; i++) {
         transmitBuffer[i+7]=((size>>(i*8)) & 0xff);
@@ -378,17 +384,17 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'm' -> start moving
   } else if (command == 'm') {
-    //dtData x;
-    //x = ysteps.pop();
-    //PITimer1.period(x.dt);
-    PITimer1.period(0.01);
-    //dtData y;
-    //y = ysteps.pop();
-    //PITimer2.period(y.dt);
-    PITimer2.period(0.01);
+    if ((!ysteps.isEmpty()) && (!xsteps.isEmpty())) {
+      dtx = ysteps.pop();
+      PITimer1.period(dtx.dt);
+      //PITimer1.period(0.01);
+      dty = xsteps.pop();
+      PITimer2.period(dty.dt);
+      //PITimer2.period(0.01);
 
-    PITimer1.start();
-    PITimer2.start();   
+      PITimer1.start();
+      PITimer2.start();   
+    }
 
   // 's' -> make steps
   } else if (command == 's') {
@@ -397,8 +403,8 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'c' -> clear buffers
   } else if (command == 'c') {
-    reset_cb(&xsteps);
-    reset_cb(&ysteps);
+    xsteps.clear();
+    ysteps.clear();
 
   // 'r' -> read back x buffer, last 1024 bits
   } else if (command == 'r') {
@@ -406,7 +412,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     union_float dt; 
     int offset = 0;
     while (offset < 2040) {
-      data = pop_cb(&xsteps);
+      data = xsteps.shift();
       dt.f = data.dt;
       transmitBuffer[offset+0] = dt.b[0];
       transmitBuffer[offset+1] = dt.b[1];
@@ -425,7 +431,7 @@ void loop() {
 
   myPacketSerial.update();
 
-  delayMicroseconds(50);
+  //delayMicroseconds(50);
 
   // button_bounce.update();
   // up_bounce.update();

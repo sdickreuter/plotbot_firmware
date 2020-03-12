@@ -56,7 +56,7 @@ def write_timings(timings, axis):
     reply += b's'
     reply += bytes(struct.pack('<H',len(timings)))                   
     for i in range(len(timings)):
-        reply += bytes(struct.pack(">f", timings[i]))
+        reply += bytes(struct.pack("<f", timings[i]))
     write(ser, reply)
     
     # msg = b''
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     # print(len(msg)/4)
     # i = 0
     # while 4*i+4 < len(msg):
-    #     print(i,struct.unpack('>f',msg[i*4:i*4+4])[0],timings[i])
+    #     print(i,struct.unpack('<f',msg[i*4:i*4+4])[0],timings[i])
     #     i += 1
 
     # raise RuntimeError
@@ -184,25 +184,25 @@ if __name__ == '__main__':
     write(ser, b'm')
 
 
-    # timings = np.repeat(-0.002, 500)
-    # write_timings(timings,b'x')
-    # write_timings(timings,b'y')
-    # print("buffer length",read_bufferlength())
+    timings = np.repeat(-0.002, 500)
+    write_timings(timings,b'x')
+    write_timings(timings,b'y')
+    print("buffer length",read_bufferlength())
 
 
-    # timings = np.repeat(0.002, 500)
-    # write_timings(timings,b'x')
-    # write_timings(timings,b'y')
-    # print("buffer length",read_bufferlength())
+    timings = np.repeat(0.002, 500)
+    write_timings(timings,b'x')
+    write_timings(timings,b'y')
+    print("buffer length",read_bufferlength())
 
 
-    # for i in range(20):
-    #     #print("buffer length",read_bufferlength())
-    #     print(i)
-    #     time.sleep(0.5)
+    for i in range(20):
+        print("buffer length",read_bufferlength())
+        print(i)
+        time.sleep(0.5)
 
-    # write(ser, b'd')
-    # raise RuntimeError
+    write(ser, b'd')
+    raise RuntimeError
 
 
     size = 666
@@ -227,7 +227,7 @@ if __name__ == '__main__':
                     ty += size
                     write_timings(timings,b'y')
 
-            print("buffer length",read_bufferlength())
+            #print("buffer length",read_bufferlength())
 
 
         time.sleep(0.1)
