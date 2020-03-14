@@ -184,25 +184,25 @@ if __name__ == '__main__':
     write(ser, b'm')
 
 
-    timings = np.repeat(-0.002, 500)
-    write_timings(timings,b'x')
-    write_timings(timings,b'y')
-    print("buffer length",read_bufferlength())
+    # timings = np.repeat(-0.002, 500)
+    # write_timings(timings,b'x')
+    # write_timings(timings,b'y')
+    # print("buffer length",read_bufferlength())
 
 
-    timings = np.repeat(0.002, 500)
-    write_timings(timings,b'x')
-    write_timings(timings,b'y')
-    print("buffer length",read_bufferlength())
+    # timings = np.repeat(0.002, 500)
+    # write_timings(timings,b'x')
+    # write_timings(timings,b'y')
+    # print("buffer length",read_bufferlength())
 
 
-    for i in range(20):
-        print("buffer length",read_bufferlength())
-        print(i)
-        time.sleep(0.5)
+    # for i in range(20):
+    #     print("buffer length",read_bufferlength())
+    #     print(i)
+    #     time.sleep(0.5)
 
-    write(ser, b'd')
-    raise RuntimeError
+    # write(ser, b'd')
+    # raise RuntimeError
 
 
     size = 666

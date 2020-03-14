@@ -228,10 +228,10 @@ void setup() {
 }
 
 void update_switches() {
-	topright_bounce.update();
-	topleft_bounce.update();
-	bottomleft_bounce.update();
-	bottomright_bounce.update();     
+  topright_bounce.update();
+  topleft_bounce.update();
+  bottomleft_bounce.update();
+  bottomright_bounce.update();     
 }
 
 
@@ -291,7 +291,7 @@ void home_motors() {
 
 union union_float {
    byte b[4];
-   long f;
+   float f;
 };
 
 
@@ -451,19 +451,19 @@ void loop() {
   // if (down_bounce.read()==HIGH) {
   //   stepper_top.enableDriver();
   //   stepper_top.set_dir(false);
-		// step_top();
+    // step_top();
   //   delayMicroseconds(1000);
   // }
   // if (left_bounce.read()==HIGH) {
   //   stepper_bottom.enableDriver();
   //   stepper_bottom.set_dir(true);
-		// step_bottom();
+    // step_bottom();
   //   delayMicroseconds(1000);
   // }
   // if (right_bounce.read()==HIGH) {
   //   stepper_bottom.enableDriver();
   //   stepper_bottom.set_dir(false);
-		// step_bottom();
+    // step_bottom();
   //   delayMicroseconds(1000);
   // }
 
