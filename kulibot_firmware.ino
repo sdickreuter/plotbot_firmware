@@ -10,7 +10,7 @@
 // struct for storing step timings
 struct dtData {
   float dt;
-  int action;
+  char action;
 };
 
 // 1500 * 4 * 64 bit = 48 kbytes, Teensy 3.2 has 64 kbytes of RAM
@@ -18,8 +18,10 @@ struct dtData {
 CircularBuffer<dtData, 3000> xsteps;
 CircularBuffer<dtData, 3000> ysteps;
 
+#define MAX_BUFFER_ELEMENTS 1000
+
 //SerialTransfer transferbuffer;
-PacketSerial_<COBS, 0, 2048> myPacketSerial;
+PacketSerial_<COBS, 0, MAX_BUFFER_ELEMENTS*sizeof(dtData)> myPacketSerial;
 
 #define button 0
 #define up 4
@@ -300,7 +302,8 @@ union union_long {
 };
 
 
-uint8_t transmitBuffer[512*4];
+//uint8_t transmitBuffer[512*4];
+uint8_t transmitBuffer[128];
 
 // This is our handler callback function.
 // When an encoded packet is received and decoded, it will be delivered here.
@@ -332,8 +335,9 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
           dt.b[i] = *(buffer+offset+i);
         }
         data.dt = dt.f;
+        data.action = *(buffer+offset+4);
         xsteps.push(data);
-        offset += 4;
+        offset += 5;
       }
     } else if (axis == 'y') {
       for (long c=0; c<size.l; c++) {
@@ -341,8 +345,9 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
           dt.b[i] = *(buffer+offset+i);
         }
         data.dt = dt.f;
+        data.action = *(buffer+offset+4);
         ysteps.push(data);
-        offset += 4;
+        offset += 5;
       }
     } 
 
@@ -415,23 +420,37 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     xsteps.clear();
     ysteps.clear();
 
-  // 'r' -> read back x buffer, last 1024 bits
-  } else if (command == 'r') {
-    dtData data;
-    union_float dt;
-    int offset = 0;
-    while (offset < 256*4+1) {
-      data = xsteps.shift();
-      dt.f = data.dt;
-      transmitBuffer[offset+0] = dt.b[0];
-      transmitBuffer[offset+1] = dt.b[1];
-      transmitBuffer[offset+2] = dt.b[2];
-      transmitBuffer[offset+3] = dt.b[3];
-      offset += 4;
+  // // 'r' -> read back x buffer, last 1024 bits
+  // } else if (command == 'r') {
+  //   dtData data;
+  //   union_float dt;
+  //   int offset = 0;
+  //   while (offset < 256*4+1) {
+  //     data = xsteps.shift();
+  //     dt.f = data.dt;
+  //     transmitBuffer[offset+0] = dt.b[0];
+  //     transmitBuffer[offset+1] = dt.b[1];
+  //     transmitBuffer[offset+2] = dt.b[2];
+  //     transmitBuffer[offset+3] = dt.b[3];
+  //     offset += 4;
+  //   }
+  //   myPacketSerial.send(transmitBuffer, offset);
+  // }
+
+  // 'i' -> send infos
+  } else if (command == 'i') {
+    long max_buffer_size = (long) MAX_BUFFER_ELEMENTS*sizeof(dtData);
+    size = (long) xsteps.size();
+    transmitBuffer[0] = 'm';
+    transmitBuffer[1] = 'a';
+    transmitBuffer[2] = 'x';
+    long offset = 3;
+    for (int i=0; i<4; i++) {
+        transmitBuffer[i+offset]=((max_buffer_size>>(i*8)) & 0xff);
     }
+    offset += 4;
     myPacketSerial.send(transmitBuffer, offset);
   }
-
 }
 
 

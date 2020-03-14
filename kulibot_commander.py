@@ -49,7 +49,9 @@ def write(ser, msg):
     ser.write(msg)
 
 
-def write_timings(timings, axis):
+def write_buffer(timings , axis):
+    actions = b'c'*len(timings)
+    print(actions)
     reply = b''
     reply += b'b'
     reply += axis
@@ -58,6 +60,7 @@ def write_timings(timings, axis):
     #print(reply, struct.unpack('<l',reply[-4:]), len(timings))            
     for i in range(len(timings)):
         reply += bytes(struct.pack("<f", timings[i]))
+        reply += actions[i]
     write(ser, reply)
     
     # msg = b''
@@ -135,8 +138,8 @@ if __name__ == '__main__':
 
     # timings = generate_sine_movement(np.arange(start=0,stop=256),freq = 0.01)
     # #timings = np.linspace(0,10,512)
-    # write_timings(timings,b'x')
-    # write_timings(timings,b'y')
+    # write_buffer(timings,b'x')
+    # write_buffer(timings,b'y')
 
     # write(ser, b'r')
 
@@ -156,27 +159,27 @@ if __name__ == '__main__':
     # print("buffer length",read_bufferlength())
 
     # timings = np.repeat(0.001, 500)
-    # write_timings(timings,b'x')
-    # write_timings(timings,b'y')
+    # write_buffer(timings,b'x')
+    # write_buffer(timings,b'y')
     # print("buffer length",read_bufferlength())
 
 
-    # enable motors
-    write(ser, b'e')
+    # # enable motors
+    # write(ser, b'e')
 
-    # home motors
-    write(ser, b'h')
-    homed = False
-    while not homed:
-        msg = read(ser)
-        if len(msg) > 1:
-            if msg == b'ok':
-                print(msg,"->", "homing finished")
-                homed = True
+    # # home motors
+    # write(ser, b'h')
+    # homed = False
+    # while not homed:
+    #     msg = read(ser)
+    #     if len(msg) > 1:
+    #         if msg == b'ok':
+    #             print(msg,"->", "homing finished")
+    #             homed = True
 
     timings = np.repeat(0.001, 500)
-    write_timings(timings,b'x')
-    write_timings(timings,b'y')
+    write_buffer(timings,b'x')
+    write_buffer(timings,b'y')
     print("buffer length",read_bufferlength())
 
     time.sleep(0.1)
@@ -186,14 +189,14 @@ if __name__ == '__main__':
 
 
     timings = np.repeat(-0.001, 500)
-    write_timings(timings,b'x')
-    write_timings(timings,b'y')
+    write_buffer(timings,b'x')
+    write_buffer(timings,b'y')
     print("buffer length",read_bufferlength())
 
 
     timings = np.repeat(0.001, 500)
-    write_timings(timings,b'x')
-    write_timings(timings,b'y')
+    write_buffer(timings,b'x')
+    write_buffer(timings,b'y')
     print("buffer length",read_bufferlength())
 
 
@@ -206,7 +209,7 @@ if __name__ == '__main__':
     # raise RuntimeError
 
 
-    size = 500
+    size = 666
 
     count = 0
     tx = 0
@@ -223,16 +226,16 @@ if __name__ == '__main__':
                     #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
                     timings = generate_triangle_movement(np.arange(start=tx,stop=tx+size))
                     tx += size
-                    write_timings(timings,b'x')
+                    write_buffer(timings,b'x')
             else:
                 if ylen < (3000-size):
                     #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
                     timings = generate_triangle_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
                     ty += size
-                    write_timings(timings,b'y')
+                    write_buffer(timings,b'y')
 
 
-        time.sleep(0.1)
+        time.sleep(0.01)
         count += 1
         #print(count, ' ', link.status, " | rxBuff ",link.rxBuff[0:5])
         #if count % 10 == 0:
