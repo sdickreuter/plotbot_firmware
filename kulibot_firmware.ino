@@ -294,6 +294,11 @@ union union_float {
    float f;
 };
 
+union union_long {
+   byte b[4];
+   long l;
+};
+
 
 uint8_t transmitBuffer[512*4];
 
@@ -313,16 +318,16 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     offset+=1;
     char action = *(buffer + offset);
     offset+=1;
-    uint16_t size = 0; 
-    for (byte i=0; i<2; i++)     {
-      size+= (*(buffer+offset+i))<<(i*8);
+    union_long size; 
+    for (byte i=0; i<4; i++)     {
+      size.b[i] = *(buffer+offset+i);
     }
-    offset+=2;
+    offset+=4;
 
     union_float dt;
 
     if (axis == 'x') {
-      for (long c=0; c<size; c++) {
+      for (long c=0; c<size.l; c++) {
         for (byte i=0; i<4; i++)     {
           dt.b[i] = *(buffer+offset+i);
         }
@@ -331,7 +336,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
         offset += 4;
       }
     } else if (axis == 'y') {
-      for (long c=0; c<size; c++) {
+      for (long c=0; c<size.l; c++) {
         for (byte i=0; i<4; i++)     {
           dt.b[i] = *(buffer+offset+i);
         }
