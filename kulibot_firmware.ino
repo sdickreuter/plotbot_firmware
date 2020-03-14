@@ -152,7 +152,7 @@ void updatex() {
     stepper_top.step();
     //step_top();
   } else {
-    //PITimer1.stop();
+    PITimer1.stop();
   }
 }
 
@@ -171,7 +171,7 @@ void updatey() {
     stepper_bottom.step();
     //step_bottom();
   } else {
-    //PITimer2.stop();
+    PITimer2.stop();
   }
 }
 
@@ -295,7 +295,7 @@ union union_float {
 };
 
 
-uint8_t transmitBuffer[2024];
+uint8_t transmitBuffer[512*4];
 
 // This is our handler callback function.
 // When an encoded packet is received and decoded, it will be delivered here.
@@ -385,15 +385,19 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'm' -> start moving
   } else if (command == 'm') {
     if ((!ysteps.isEmpty()) && (!xsteps.isEmpty())) {
-      dtx = ysteps.pop();
-      PITimer1.period(dtx.dt);
-      //PITimer1.period(0.01);
-      dty = xsteps.pop();
-      PITimer2.period(dty.dt);
-      //PITimer2.period(0.01);
+      if ((!PITimer1.running()) && (!PITimer2.running())) {
+      PITimer1.reset();
+      PITimer2.reset();
+      //dtx = ysteps.pop();
+      //PITimer1.period(dtx.dt);
+      PITimer1.period(0.01);
+      //dty = xsteps.pop();
+      //PITimer2.period(dty.dt);
+      PITimer2.period(0.01);
 
       PITimer1.start();
       PITimer2.start();   
+      }
     }
 
   // 's' -> make steps
@@ -409,16 +413,16 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'r' -> read back x buffer, last 1024 bits
   } else if (command == 'r') {
     dtData data;
-    union_float dt; 
+    union_float dt;
     int offset = 0;
-    while (offset < 2040) {
+    while (offset < 256*4+1) {
       data = xsteps.shift();
       dt.f = data.dt;
       transmitBuffer[offset+0] = dt.b[0];
       transmitBuffer[offset+1] = dt.b[1];
       transmitBuffer[offset+2] = dt.b[2];
       transmitBuffer[offset+3] = dt.b[3];
-      offset += 4;      
+      offset += 4;
     }
     myPacketSerial.send(transmitBuffer, offset);
   }

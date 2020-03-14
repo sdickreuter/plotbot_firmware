@@ -74,7 +74,7 @@ def read_bufferlength():
     msg = b''
     while len(msg) < 1:
         msg = read(ser)
-        time.sleep(0.05)
+        time.sleep(0.01)
 
     if len(msg) > 1:
         if msg[0] == ord("l"): 
@@ -84,7 +84,7 @@ def read_bufferlength():
     return None, None
 
 
-def generate_sine_movement(t, freq = 0.001, phase = 0.0,dtmin = 0.002, dtmax = 0.008):
+def generate_sine_movement(t, freq = 0.005, phase = 0.0,dtmin = 0.0005, dtmax = 0.005):
     y = np.sin(2*np.pi*t*freq+phase)*dtmax
     dt = np.zeros(len(y))
     dt[y < 0] = y[y < 0] + dtmin + dtmax
@@ -130,9 +130,9 @@ if __name__ == '__main__':
 
     time.sleep(2) # allow some time for the Arduino to completely reset
 
-    # write(ser, b'c')
+    #write(ser, b'c')
 
-    # timings = generate_triangle_movement(np.arange(start=0,stop=511),freq = 0.01)
+    # timings = generate_sine_movement(np.arange(start=0,stop=256),freq = 0.01)
     # #timings = np.linspace(0,10,512)
     # write_timings(timings,b'x')
     # write_timings(timings,b'y')
@@ -145,7 +145,7 @@ if __name__ == '__main__':
 
     # print(len(msg)/4)
     # i = 0
-    # while 4*i+4 < len(msg):
+    # while 4*i < len(msg):
     #     print(i,struct.unpack('<f',msg[i*4:i*4+4])[0],timings[i])
     #     i += 1
 
@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
     # print("buffer length",read_bufferlength())
 
-    # timings = np.repeat(0.002, 500)
+    # timings = np.repeat(0.001, 500)
     # write_timings(timings,b'x')
     # write_timings(timings,b'y')
     # print("buffer length",read_bufferlength())
@@ -163,17 +163,17 @@ if __name__ == '__main__':
     # enable motors
     write(ser, b'e')
 
-    # home motors
-    write(ser, b'h')
-    homed = False
-    while not homed:
-        msg = read(ser)
-        if len(msg) > 1:
-            if msg == b'ok':
-                print(msg,"->", "homing finished")
-                homed = True
+    # # home motors
+    # write(ser, b'h')
+    # homed = False
+    # while not homed:
+    #     msg = read(ser)
+    #     if len(msg) > 1:
+    #         if msg == b'ok':
+    #             print(msg,"->", "homing finished")
+    #             homed = True
 
-    timings = np.repeat(0.002, 500)
+    timings = np.repeat(0.001, 500)
     write_timings(timings,b'x')
     write_timings(timings,b'y')
     print("buffer length",read_bufferlength())
@@ -184,16 +184,16 @@ if __name__ == '__main__':
     write(ser, b'm')
 
 
-    # timings = np.repeat(-0.002, 500)
-    # write_timings(timings,b'x')
-    # write_timings(timings,b'y')
-    # print("buffer length",read_bufferlength())
+    timings = np.repeat(-0.001, 500)
+    write_timings(timings,b'x')
+    write_timings(timings,b'y')
+    print("buffer length",read_bufferlength())
 
 
-    # timings = np.repeat(0.002, 500)
-    # write_timings(timings,b'x')
-    # write_timings(timings,b'y')
-    # print("buffer length",read_bufferlength())
+    timings = np.repeat(0.001, 500)
+    write_timings(timings,b'x')
+    write_timings(timings,b'y')
+    print("buffer length",read_bufferlength())
 
 
     # for i in range(20):
@@ -205,29 +205,29 @@ if __name__ == '__main__':
     # raise RuntimeError
 
 
-    size = 666
+    size = 500
 
     count = 0
     tx = 0
     ty = 0
-    while count < 200:
+    while count < 100:
 
+        print(count)
         xlen, ylen = read_bufferlength()
-        
+        print("buffer length",xlen,ylen)
+
         if xlen is not None:
             if xlen <= ylen:
                 if xlen < 3000-size:
-                    timings = generate_triangle_movement(np.arange(start=tx,stop=tx+size))
+                    timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
                     tx += size
                     write_timings(timings,b'x')
             else:
                 if ylen < 3000-size:
                     #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
-                    timings = generate_triangle_movement(np.arange(start=ty,stop=ty+size))
+                    timings = generate_sine_movement(np.arange(start=ty,stop=ty+size))
                     ty += size
                     write_timings(timings,b'y')
-
-            #print("buffer length",read_bufferlength())
 
 
         time.sleep(0.1)
