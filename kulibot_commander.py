@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     time.sleep(2) # allow some time for the Arduino to completely reset
 
-    #write(ser, b'c')
+    write(ser, b'c')
 
     # timings = generate_sine_movement(np.arange(start=0,stop=256),freq = 0.01)
     # #timings = np.linspace(0,10,512)
