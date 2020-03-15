@@ -85,6 +85,7 @@ void step_top() {
   }
 }
 
+
 void step_bottom() {
   if (stepper_bottom.dir > 0) {
     //bottomright_bounce.update();
@@ -100,7 +101,6 @@ void step_bottom() {
 }
 
 
-
 void updatex() {
   if (length_cb(&xsteps)>0) {
     dtx = pop_cb(&xsteps);
@@ -112,8 +112,8 @@ void updatex() {
         PITimer1.period(dtx.dt);
         stepper_top.set_dir(false);
     }
-    stepper_top.step();
-    //step_top();
+    //stepper_top.step();
+    step_top();
   } else {
     PITimer1.stop();
   }
@@ -131,8 +131,8 @@ void updatey() {
         PITimer2.period(dty.dt);
         stepper_bottom.set_dir(true);
     }
-    stepper_bottom.step();
-    //step_bottom();
+    //stepper_bottom.step();
+    step_bottom();
   } else {
     PITimer2.stop();
   }
@@ -183,11 +183,7 @@ void setup() {
   myPacketSerial.setPacketHandler(&onPacketReceived);
 
   PITimer1.set_callback(updatex);
-  //PITimer1.period(0.001);
-  //PITimer1.start();
   PITimer2.set_callback(updatey);
-  //PITimer2.period(0.002);
-  //PITimer2.start();
 }
 
 void update_switches() {
@@ -312,13 +308,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
       }
     } 
 
-    // char fchar[8]; // Buffer big enough for 7-character float
-    // dtostrf(absolute(data.dt), 6, 2, fchar); // Leave room for too large numbers!
-    // for (byte i=0; i<8; i++) {
-    //   transmitBuffer[i] = fchar[i];
-    // }
-    // myPacketSerial.send(transmitBuffer, 8);
-
   // 'h' -> home motors
   } else if (command == 'h') {
     home_motors();
@@ -416,46 +405,9 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
 
 void loop() {
+  
   update_switches();
 
   myPacketSerial.update();
-
-  //delayMicroseconds(50);
-
-  // button_bounce.update();
-  // up_bounce.update();
-  // down_bounce.update();
-  // left_bounce.update();
-  // right_bounce.update();
-
-  // if (button_bounce.read()==HIGH) {
-  //   home_motors();  
-  // } 
-  // if (up_bounce.read()==HIGH) {
-  //   stepper_top.enableDriver();
-  //   stepper_top.set_dir(true);
-  //   step_top();
-  //   delayMicroseconds(1000);
-  // } 
-  // if (down_bounce.read()==HIGH) {
-  //   stepper_top.enableDriver();
-  //   stepper_top.set_dir(false);
-    // step_top();
-  //   delayMicroseconds(1000);
-  // }
-  // if (left_bounce.read()==HIGH) {
-  //   stepper_bottom.enableDriver();
-  //   stepper_bottom.set_dir(true);
-    // step_bottom();
-  //   delayMicroseconds(1000);
-  // }
-  // if (right_bounce.read()==HIGH) {
-  //   stepper_bottom.enableDriver();
-  //   stepper_bottom.set_dir(false);
-    // step_bottom();
-  //   delayMicroseconds(1000);
-  // }
-
-
 
 }
