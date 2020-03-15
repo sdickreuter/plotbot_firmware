@@ -27,7 +27,7 @@ Stepper::Stepper(int ENABLE,int MS1,int MS2,int SPREAD,int STEP,int DIR) {
 
 	setMicrostepping(0);
 
-	position = 500;
+	position = 0;
 	dir = 1;
 }
 
@@ -63,17 +63,21 @@ void Stepper::setMicrostepping(int MODE){
   }
 }
 
+void Stepper::zero() {
+  this->position = 0;
+}
 
-int Stepper::get_pos() {
+
+long Stepper::get_pos() {
 	return position;
 }
 
 void Stepper::set_dir(bool dir) {
   if (dir) {
-	this->dir = 1;
+    this->dir = 1;
     digitalWrite(this->DIR_pin, HIGH);
   } else {
-	this->dir = -1;
+  	this->dir = -1;
     digitalWrite(this->DIR_pin, LOW);
   }
 }
@@ -83,5 +87,9 @@ void Stepper::step() {
 	delayMicroseconds(2);
 	digitalWrite(this->STEP_pin, LOW);
 	delayMicroseconds(2);
-	position++;
+	if (this->dir == 1) {
+    this->position++;
+  } else {
+    this->position--;    
+  }
 }

@@ -86,6 +86,23 @@ def read_bufferlength():
     return None, None
 
 
+def read_positions():
+    msg = b'p'
+    write(ser, msg)
+
+    msg = b''
+    while len(msg) < 1:
+        msg = read(ser)
+        time.sleep(0.01)
+
+    if len(msg) > 1:
+        if msg[0] == ord("p"): 
+            xpos = struct.unpack('<l',msg[2:6])[0]
+            ypos = struct.unpack('<l',msg[7:11])[0]
+            return xpos, ypos
+    return None, None
+
+
 def generate_sine_movement(t, freq = 0.0001, phase = 0.0,dtmin = 0.0001, dtmax = 0.001):
     y = np.sin(2*np.pi*t*freq+phase)*dtmax
     dt = np.zeros(len(y))
@@ -134,34 +151,6 @@ if __name__ == '__main__':
 
     write(ser, b'c')
 
-    # timings = generate_sine_movement(np.arange(start=0,stop=256),freq = 0.01)
-    # #timings = np.linspace(0,10,512)
-    # write_buffer(timings, np.repeat(1,len(timings)), b'x')
-    # write_buffer(timings, np.repeat(1,len(timings)), b'y')
-
-    # write(ser, b'r')
-
-    # msg = b''
-    # while len(msg) < 1:
-    #     msg = read(ser)
-
-    # print(len(msg)/4)
-    # i = 0
-    # while 4*i < len(msg):
-    #     print(i,struct.unpack('<f',msg[i*4:i*4+4])[0],timings[i])
-    #     i += 1
-
-    # raise RuntimeError
-
-
-    # print("buffer length",read_bufferlength())
-
-    # timings = np.repeat(0.001, 500)
-    # write_buffer(timings, np.repeat(1,len(timings)), b'x')
-    # write_buffer(timings, np.repeat(1,len(timings)), b'y')
-    # print("buffer length",read_bufferlength())
-
-
     # enable motors
     write(ser, b'e')
 
@@ -175,36 +164,15 @@ if __name__ == '__main__':
                 print(msg,"->", "homing finished")
                 homed = True
 
-    timings = np.repeat(0.001, 500)
+    timings = np.repeat(0.0002, 500)
     write_buffer(timings, np.repeat(1,len(timings)), b'x')
     write_buffer(timings, np.repeat(1,len(timings)), b'y')
     print("buffer length",read_bufferlength())
 
-    time.sleep(0.1)
+    time.sleep(0.2)
     #write(ser, b'c')
 
     write(ser, b'm')
-
-
-    timings = np.repeat(-0.001, 500)
-    write_buffer(timings, np.repeat(1,len(timings)), b'x')
-    write_buffer(timings, np.repeat(1,len(timings)), b'y')
-    print("buffer length",read_bufferlength())
-
-
-    timings = np.repeat(0.001, 500)
-    write_buffer(timings, np.repeat(1,len(timings)), b'x')
-    write_buffer(timings, np.repeat(1,len(timings)), b'y')
-    print("buffer length",read_bufferlength())
-
-
-    # for i in range(20):
-    #     print("buffer length",read_bufferlength())
-    #     print(i)
-    #     time.sleep(0.5)
-
-    # write(ser, b'd')
-    # raise RuntimeError
 
 
     size = 500
@@ -212,33 +180,36 @@ if __name__ == '__main__':
     count = 0
     tx = 0
     ty = 0
-    while count < 1000:
+    while count < 19:
 
+        print(read_positions())
         xlen, ylen = read_bufferlength()
-        print(count,"buffer length",xlen,ylen)
+        #print(count,"buffer length",xlen,ylen)
 
         if xlen is not None:
             if xlen <= ylen:
                 if xlen < (3000-size):
                     #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
-                    timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
+                    #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
                     tx += size
                     write_buffer(timings, np.repeat(1,len(timings)), b'x')
+                    
             else:
                 if ylen < (3000-size):
                     #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
-                    timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
+                    #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
                     ty += size
                     write_buffer(timings, np.repeat(1,len(timings)), b'y')
-
+                    count += 1
 
         time.sleep(0.01)
-        count += 1
         #print(count, ' ', link.status, " | rxBuff ",link.rxBuff[0:5])
         #if count % 10 == 0:
         #    print(count)
 
-    time.sleep(1)
+    for i in range(100):
+        print(read_positions())
+        time.sleep(0.1)
 
     write(ser, b'd')
 

@@ -23,7 +23,10 @@ class Stepper {
 	  
 	void step();
 	
-	int get_pos();
+	long get_pos();
+
+	void zero();
+
 	int dir;
 
 	int stepping_factor;
@@ -35,7 +38,7 @@ class Stepper {
     int SPREAD_pin;
     int STEP_pin;
     int DIR_pin;
-	int position;
+	long position;
 };
 
 
