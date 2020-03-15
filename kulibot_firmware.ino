@@ -49,19 +49,20 @@ Bounce topleft_bounce = Bounce();
 Bounce bottomleft_bounce = Bounce(); 
 Bounce bottomright_bounce = Bounce(); 
 
-#define TOP_STEP 14
-#define TOP_DIR 13
-#define TOP_MS1 17
-#define TOP_MS2 16
-#define TOP_MS3 15
-#define TOP_ENABLE 18
+#define TOP_ENABLE 13   // blau
+#define TOP_MS1 14      // grün
+#define TOP_MS2 15      // gelb
+#define TOP_SPRD 16     // orange
+#define TOP_STEP 17     // braun
+#define TOP_DIR 18      // grau
 
-#define BOTTOM_STEP 3
-#define BOTTOM_DIR 2
-#define BOTTOM_MS1 6
-#define BOTTOM_MS2 5
-#define BOTTOM_MS3 4
-#define BOTTOM_ENABLE 7
+#define BOTTOM_ENABLE 2 // blau
+#define BOTTOM_MS1 3    // grün
+#define BOTTOM_MS2 4    // gelb
+#define BOTTOM_SPRD 5   // orange
+#define BOTTOM_STEP 6   // braun
+#define BOTTOM_DIR 7    // grau
+
 
 // LED pin ist schon belegt !!!
 //const int ledPin = 13;
@@ -70,8 +71,9 @@ Bounce bottomright_bounce = Bounce();
 elapsedMicros mu;
 elapsedMicros pressed;
 
-Stepper stepper_bottom(200, TOP_DIR, TOP_STEP, TOP_MS1,TOP_MS2, TOP_MS3, TOP_ENABLE);
-Stepper stepper_top(200, BOTTOM_DIR, BOTTOM_STEP, BOTTOM_MS1, BOTTOM_MS2, BOTTOM_MS3, BOTTOM_ENABLE);
+//Stepper::Stepper(int ENABLE,int MS1,int MS2,int SPREAD,int STEP,int DIR)
+Stepper stepper_bottom(TOP_ENABLE, TOP_MS1, TOP_MS2, TOP_SPRD, TOP_STEP, TOP_DIR);
+Stepper stepper_top(BOTTOM_ENABLE, BOTTOM_MS1, BOTTOM_MS2, BOTTOM_SPRD, BOTTOM_STEP, BOTTOM_DIR);
 
 #define DELAYMU 200
 
