@@ -81,9 +81,17 @@ class PlotBot(object):
     def enable(self):
         self.write(b'e')
 
+    #disable motors
+    def disable(self):
+        self.write(b'd')
+
     #clear buffers
     def clear(self):
         self.write(b'c')
+
+    #start moving
+    def start_moving(self):
+        self.write(b'm')
 
 
     def write_buffer(self, timings, actions, axis):

@@ -16,13 +16,15 @@ class Form(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(Form, self).__init__(parent)
         
+        self.bot = None
+
         rightlayout = QtWidgets.QVBoxLayout()
 
         self.connect_button = QtWidgets.QPushButton("Connect")
         rightlayout.addWidget(self.connect_button)
 
 
-        self.step_edit = QtWidgets.QLineEdit("1000")
+        self.step_edit = QtWidgets.QLineEdit("500")
         onlyInt = QtGui.QIntValidator()
         self.step_edit.setValidator(onlyInt)
         rightlayout.addWidget(self.step_edit)   
@@ -35,6 +37,27 @@ class Form(QtWidgets.QDialog):
         self.demo_button = QtWidgets.QPushButton("Demo")
         self.demo_button.setEnabled(False)
         rightlayout.addWidget(self.demo_button)
+
+
+        jog_a_layout = QtWidgets.QHBoxLayout()
+        jog_a_layout.addWidget(QtWidgets.QLabel("a "))
+        self.jog_a_left_button = QtWidgets.QPushButton("<-")
+        self.jog_a_left_button.setEnabled(False)
+        jog_a_layout.addWidget(self.jog_a_left_button)
+        self.jog_a_right_button = QtWidgets.QPushButton("->")
+        self.jog_a_right_button.setEnabled(False)
+        jog_a_layout.addWidget(self.jog_a_right_button)
+        rightlayout.addLayout(jog_a_layout)
+
+        jog_b_layout = QtWidgets.QHBoxLayout()
+        jog_b_layout.addWidget(QtWidgets.QLabel("b "))
+        self.jog_b_left_button = QtWidgets.QPushButton("<-")
+        self.jog_b_left_button.setEnabled(False)
+        jog_b_layout.addWidget(self.jog_b_left_button)
+        self.jog_b_right_button = QtWidgets.QPushButton("->")
+        self.jog_b_right_button.setEnabled(False)
+        jog_b_layout.addWidget(self.jog_b_right_button)
+        rightlayout.addLayout(jog_b_layout)
 
 
         leftlayout = QtWidgets.QVBoxLayout()
@@ -55,8 +78,11 @@ class Form(QtWidgets.QDialog):
         self.connect_button.clicked.connect(self.connect)
         self.home_button.clicked.connect(self.home)
 
+        self.jog_a_right_button.clicked.connect(self.jog_a_right)
+        self.jog_a_left_button.clicked.connect(self.jog_a_left)
+        self.jog_b_right_button.clicked.connect(self.jog_b_right)
+        self.jog_b_left_button.clicked.connect(self.jog_b_left)
 
-        self.bot = None
 
     # Greets the user
     def connect(self):
@@ -67,23 +93,47 @@ class Form(QtWidgets.QDialog):
             self.bot.enable()
             self.home_button.setEnabled(True)
             self.demo_button.setEnabled(True)
+            self.jog_a_left_button.setEnabled(True)
+            self.jog_a_right_button.setEnabled(True)
+            self.jog_b_left_button.setEnabled(True)
+            self.jog_b_right_button.setEnabled(True)
+
             self.textbox.setPlainText("Connected to plotbot at "+self.bot.serial.port)
         except:
             self.textbox.setPlainText("Could not connect to plotbot")
 
 
     def home(self):
-        self.plotbot.home()
+        self.bot.clear()
+        self.bot.home()
+
+    def jog_a_right(self):
+        self.jog("a", 1)
+
+    def jog_a_left(self):
+        self.jog("a", -1)
+
+    def jog_b_right(self):
+        self.jog("b", 1)
+
+    def jog_b_left(self):
+        self.jog("b", -1)
 
 
-    def jog(axis):
-        if axis == "a":
-            timings = np.repeat(0.0002, 500)
-            self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'x')
-        elif axis == "b":
-            timings = np.repeat(0.0002, 500)
-            self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'y')
+    def jog(self, axis, dir):
+        lena, lenb = self.bot.read_bufferlength()
+        if ((axis == "a" and lena < 2000) or (axis == "b" and lenb < 2000)) :
+            timings = np.repeat(dir*0.0002, int(self.step_edit.text()))
+            self.bot.write_buffer(timings, np.repeat(1,len(timings)), bytes(axis.encode()))
+            self.textbox.setPlainText("buffer lengths "+ str(self.bot.read_bufferlength()))
+            self.bot.start_moving()
+            #time.sleep(0.1) # VERY IMPORTANT! without buffer on the teensy will overflow
+        else:
+            self.textbox.setPlainText("buffer is full")
 
+    def __del__(self):
+        if self.bot is not None:
+            self.bot.disable()
 
 
 if __name__ == '__main__':
