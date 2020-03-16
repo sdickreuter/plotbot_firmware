@@ -77,6 +77,18 @@ class PlotBot(object):
         msg.append(0x00)
         self.serial.write(msg)
 
+
+    # wait for ok from microcontroller
+    def read_ok(self):
+        ok = False
+        while not ok:
+            msg = self.read()
+            if len(msg) > 1:
+                if msg == b'ok':
+                    ok = True
+        return ok
+
+
     #enable motors
     def enable(self):
         self.write(b'e')
@@ -104,6 +116,13 @@ class PlotBot(object):
             reply += bytes(struct.pack("<f", timings[i]))
             reply += bytes(struct.pack("B", actions[i]))
         self.write(reply)
+
+        finished = self.read_ok()
+        if finished:
+            print("Wrote Buffer.")
+        else:
+            print("Error writing Buffer")
+
 
 
     def read_bufferlength(self):
@@ -139,16 +158,15 @@ class PlotBot(object):
                 return xpos, ypos
         return None, None
 
+
     def home(self):
         # home motors
         self.write(b'h')
-        homed = False
-        while not homed:
-            msg = self.read()
-            if len(msg) > 1:
-                if msg == b'ok':
-                    print(msg,"->", "homing finished")
-                    homed = True
+        homed = self.read_ok()
+        if homed:
+            print("Steppers are homed.")
+        else:
+            print("Error while homing.")
 
 
 

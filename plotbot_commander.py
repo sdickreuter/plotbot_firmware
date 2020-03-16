@@ -121,15 +121,16 @@ class Form(QtWidgets.QDialog):
 
 
     def jog(self, axis, dir):
-        lena, lenb = self.bot.read_bufferlength()
-        if ((axis == "a" and lena < 2000) or (axis == "b" and lenb < 2000)) :
-            timings = np.repeat(dir*0.0002, int(self.step_edit.text()))
-            self.bot.write_buffer(timings, np.repeat(1,len(timings)), bytes(axis.encode()))
-            self.textbox.setPlainText("buffer lengths "+ str(self.bot.read_bufferlength()))
-            self.bot.start_moving()
+        self.bot.clear()
+        #lena, lenb = self.bot.read_bufferlength()
+        #if ((axis == "a" and lena < 2000) or (axis == "b" and lenb < 2000)) :
+        timings = np.repeat(dir*0.0002, int(self.step_edit.text()))
+        self.bot.write_buffer(timings, np.repeat(1,len(timings)), bytes(axis.encode()))
+        self.textbox.setPlainText("buffer lengths "+ str(self.bot.read_bufferlength()))
+        self.bot.start_moving()
             #time.sleep(0.1) # VERY IMPORTANT! without buffer on the teensy will overflow
-        else:
-            self.textbox.setPlainText("buffer is full")
+        #else:
+        #    self.textbox.setPlainText("buffer is full")
 
     def __del__(self):
         if self.bot is not None:
