@@ -165,8 +165,8 @@ if __name__ == '__main__':
                 homed = True
 
     timings = np.repeat(0.0002, 500)
-    write_buffer(timings, np.repeat(1,len(timings)), b'x')
-    write_buffer(timings, np.repeat(1,len(timings)), b'y')
+    write_buffer(timings, np.repeat(1,len(timings)), b'a')
+    write_buffer(timings, np.repeat(1,len(timings)), b'b')
     print("buffer length",read_bufferlength())
 
     time.sleep(0.2)
@@ -192,14 +192,14 @@ if __name__ == '__main__':
                     #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
                     #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
                     tx += size
-                    write_buffer(timings, np.repeat(1,len(timings)), b'x')
+                    write_buffer(timings, np.repeat(1,len(timings)), b'a')
                     
             else:
                 if ylen < (3000-size):
                     #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
                     #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
                     ty += size
-                    write_buffer(timings, np.repeat(1,len(timings)), b'y')
+                    write_buffer(timings, np.repeat(1,len(timings)), b'b')
                     count += 1
 
         time.sleep(0.01)

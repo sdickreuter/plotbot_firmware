@@ -7,6 +7,7 @@ from cobs import cobs
 import numpy as np
 from scipy import signal
 
+
 # from: https://stackoverflow.com/a/14224477
 def serial_ports():
     """ Lists serial port names
@@ -37,63 +38,6 @@ def serial_ports():
     return result
 
 
-def read(ser):
-    msg = ser.read_until(terminator=b'\x00')
-    return cobs.decode(msg[:-1])
-
-
-def write(ser, msg):
-    msg = bytearray(cobs.encode(bytearray(msg)))
-    msg.append(0x00)
-    ser.write(msg)
-
-
-def write_buffer(timings, actions, axis):
-    reply = b''
-    reply += b'b'
-    reply += axis
-    reply += b's'
-    reply += bytes(struct.pack('<l',len(timings)))
-    for i in range(len(timings)):
-        reply += bytes(struct.pack("<f", timings[i]))
-        reply += bytes(struct.pack("B", actions[i]))
-    write(ser, reply)
-
-
-def read_bufferlength(ser):
-    msg = b'l'
-    write(ser, msg)
-
-    msg = b''
-    while len(msg) < 1:
-        msg = read(ser)
-        time.sleep(0.01)
-
-    if len(msg) > 1:
-        if msg[0] == ord("l"): 
-            xlen = struct.unpack('<l',msg[2:6])[0]
-            ylen = struct.unpack('<l',msg[7:11])[0]
-            return xlen, ylen
-    return None, None
-
-
-def read_positions(ser):
-    msg = b'p'
-    write(ser, msg)
-
-    msg = b''
-    while len(msg) < 1:
-        msg = read(ser)
-        time.sleep(0.01)
-
-    if len(msg) > 1:
-        if msg[0] == ord("p"): 
-            xpos = struct.unpack('<l',msg[2:6])[0]
-            ypos = struct.unpack('<l',msg[7:11])[0]
-            return xpos, ypos
-    return None, None
-
-
 def generate_sine_movement(t, freq = 0.0001, phase = 0.0,dtmin = 0.0001, dtmax = 0.001):
     y = np.sin(2*np.pi*t*freq+phase)*dtmax
     dt = np.zeros(len(y))
@@ -110,3 +54,96 @@ def generate_triangle_movement(t, freq = 0.0001, phase = 0.0,dtmin = 0.0001, dtm
     return dt
 
 
+class PlotBot(object):
+
+    def __init__(self, comport=None):
+        if comport is None:
+            serialports = serial_ports()
+            self.serial = serial.Serial(serialports[0], timeout=0.5)
+
+        else:
+            self.serial = serial.Serial(comport, timeout=0.5)
+    
+        time.sleep(1) # allow some time for the Arduino to completely reset
+
+
+    def read(self):
+        msg = self.serial.read_until(terminator=b'\x00')
+        return cobs.decode(msg[:-1])
+
+
+    def write(self, msg):
+        msg = bytearray(cobs.encode(bytearray(msg)))
+        msg.append(0x00)
+        self.serial.write(msg)
+
+    #enable motors
+    def enable(self):
+        self.write(b'e')
+
+    #clear buffers
+    def clear(self):
+        self.write(b'c')
+
+
+    def write_buffer(self, timings, actions, axis):
+        reply = b''
+        reply += b'b'
+        reply += axis
+        reply += b's'
+        reply += bytes(struct.pack('<l',len(timings)))
+        for i in range(len(timings)):
+            reply += bytes(struct.pack("<f", timings[i]))
+            reply += bytes(struct.pack("B", actions[i]))
+        self.write(reply)
+
+
+    def read_bufferlength(self):
+        msg = b'l'
+        self.write(msg)
+
+        msg = b''
+        while len(msg) < 1:
+            msg = self.read()
+            time.sleep(0.01)
+
+        if len(msg) > 1:
+            if msg[0] == ord("l"): 
+                xlen = struct.unpack('<l',msg[2:6])[0]
+                ylen = struct.unpack('<l',msg[7:11])[0]
+                return xlen, ylen
+        return None, None
+
+
+    def read_positions(self):
+        msg = b'p'
+        self.write(msg)
+
+        msg = b''
+        while len(msg) < 1:
+            msg = self.read()
+            time.sleep(0.01)
+
+        if len(msg) > 1:
+            if msg[0] == ord("p"): 
+                xpos = struct.unpack('<l',msg[2:6])[0]
+                ypos = struct.unpack('<l',msg[7:11])[0]
+                return xpos, ypos
+        return None, None
+
+    def home(self):
+        # home motors
+        self.write(b'h')
+        homed = False
+        while not homed:
+            msg = self.read()
+            if len(msg) > 1:
+                if msg == b'ok':
+                    print(msg,"->", "homing finished")
+                    homed = True
+
+
+
+if __name__ == '__main__':
+    bot = PlotBot()
+    bot.home()
