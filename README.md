@@ -1,0 +1,15 @@
+# plotbot_firmware
+
+Firmware for plotbot plotting robot. See [plotbot on hackaday.io](https://hackaday.io/project/4220-plotbot) 
+for Informations on the Hardware.
+
+The goal of this firmware is to program as little C as possible while still getting a funktional plotter.
+In contrast to most firmwares that steer the movement of stepper motors, this one does not use gcode.
+Instead a buffer is filled from a pc with timing data that tells the microntroller when to make the steps.
+
+This firmware uses [PacketSerial](https://github.com/bakercp/PacketSerial) for serial communication 
+and [PITimer](https://github.com/loglow/PITimer) for getting the timing of the steps right. 
+Many thanks to the people who made this libraries, they are both awesome!
+
+This firmware is tested on a [Teensy](https://www.pjrc.com/teensy/) 3.1, but it will probably run on others too, 
+provided the PITimer library is working.
