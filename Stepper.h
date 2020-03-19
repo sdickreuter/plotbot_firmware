@@ -12,7 +12,7 @@
 
 class Stepper {
   public:
-	Stepper(int ENABLE,int MS1,int MS2,int SPREAD,int STEP,int DIR);
+	Stepper(int ENABLE,int MS1,int MS2,int SPREAD,int STEP,int DIR, bool flipped);
 
 	void setMicrostepping(int MODE);
 
@@ -32,6 +32,7 @@ class Stepper {
 	int stepping_factor;
 
   private:
+  	bool flipped;
     int ENBL_pin;
     int MS1_pin;
     int MS2_pin;

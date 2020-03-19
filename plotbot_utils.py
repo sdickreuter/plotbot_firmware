@@ -81,11 +81,14 @@ class PlotBot(object):
     # wait for ok from microcontroller
     def read_ok(self):
         ok = False
+        count = 0
         while not ok:
             msg = self.read()
             if len(msg) > 1:
                 if msg == b'ok':
                     ok = True
+            count += 1
+            if count > 60: break
         return ok
 
 
@@ -104,6 +107,24 @@ class PlotBot(object):
     #start moving
     def start_moving(self):
         self.write(b'm')
+
+    #zero motor positions
+    def zero(self):
+        self.write(b'z')
+
+
+    def jog(self, axis, steps):
+        reply = b''
+        reply += b'j'
+        reply += axis
+        reply += bytes(struct.pack('<l',steps))
+        self.write(reply)
+
+        finished = self.read_ok()
+        if finished:
+            print("Jogging done.")
+        else:
+            print("Error while jogging")
 
 
     def write_buffer(self, timings, actions, axis):
@@ -162,6 +183,15 @@ class PlotBot(object):
     def home(self):
         # home motors
         self.write(b'h')
+        homed = self.read_ok()
+        if homed:
+            print("Steppers are homed.")
+        else:
+            print("Error while homing.")
+
+    def home_reverse(self):
+        # home motors
+        self.write(b'r')
         homed = self.read_ok()
         if homed:
             print("Steppers are homed.")

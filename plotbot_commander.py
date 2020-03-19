@@ -24,19 +24,28 @@ class Form(QtWidgets.QDialog):
         rightlayout.addWidget(self.connect_button)
 
 
-        self.step_edit = QtWidgets.QLineEdit("500")
-        onlyInt = QtGui.QIntValidator()
-        self.step_edit.setValidator(onlyInt)
-        rightlayout.addWidget(self.step_edit)   
+        self.step_spin = QtWidgets.QSpinBox()
+        self.step_spin.setRange(0, 3000)
+        self.step_spin.setSingleStep(10)
+        self.step_spin.setValue(500)
+        rightlayout.addWidget(self.step_spin)   
 
 
         self.home_button = QtWidgets.QPushButton("Home")
         self.home_button.setEnabled(False)
         rightlayout.addWidget(self.home_button)
 
+        self.togglemotors_button = QtWidgets.QPushButton("Enable")
+        self.togglemotors_button.setEnabled(False)
+        rightlayout.addWidget(self.togglemotors_button)
+
         self.demo_button = QtWidgets.QPushButton("Demo")
         self.demo_button.setEnabled(False)
         rightlayout.addWidget(self.demo_button)
+
+        self.move_button = QtWidgets.QPushButton("Move")
+        self.move_button.setEnabled(False)
+        rightlayout.addWidget(self.move_button)
 
 
         jog_a_layout = QtWidgets.QHBoxLayout()
@@ -58,6 +67,14 @@ class Form(QtWidgets.QDialog):
         self.jog_b_right_button.setEnabled(False)
         jog_b_layout.addWidget(self.jog_b_right_button)
         rightlayout.addLayout(jog_b_layout)
+
+        self.rhome_button = QtWidgets.QPushButton("Reverse Home")
+        self.rhome_button.setEnabled(False)
+        rightlayout.addWidget(self.rhome_button)
+
+        self.readpos_button = QtWidgets.QPushButton("Read Positions")
+        self.readpos_button.setEnabled(False)
+        rightlayout.addWidget(self.readpos_button)
 
 
         leftlayout = QtWidgets.QVBoxLayout()
@@ -83,6 +100,14 @@ class Form(QtWidgets.QDialog):
         self.jog_b_right_button.clicked.connect(self.jog_b_right)
         self.jog_b_left_button.clicked.connect(self.jog_b_left)
 
+        self.demo_button.clicked.connect(self.demo)
+
+        self.move_button.clicked.connect(self.move)
+        self.togglemotors_button.clicked.connect(self.togglemotors)
+        self.motors_enabled = False
+
+        self.rhome_button.clicked.connect(self.rhome)
+        self.readpos_button.clicked.connect(self.readpos)
 
     # Greets the user
     def connect(self):
@@ -90,47 +115,114 @@ class Form(QtWidgets.QDialog):
         try:
             self.bot = pu.PlotBot()
             self.bot.clear()
-            self.bot.enable()
             self.home_button.setEnabled(True)
             self.demo_button.setEnabled(True)
             self.jog_a_left_button.setEnabled(True)
             self.jog_a_right_button.setEnabled(True)
             self.jog_b_left_button.setEnabled(True)
             self.jog_b_right_button.setEnabled(True)
+            self.move_button.setEnabled(True)
+            self.togglemotors_button.setEnabled(True)
+            self.rhome_button.setEnabled(True)
+            self.readpos_button.setEnabled(True)
 
             self.textbox.setPlainText("Connected to plotbot at "+self.bot.serial.port)
         except:
             self.textbox.setPlainText("Could not connect to plotbot")
 
 
+    def togglemotors(self):
+        if self.motors_enabled:
+            self.bot.disable()
+            self.motors_enabled = False
+            self.togglemotors_button.setText("Enable")
+        else:
+            self.bot.enable()
+            self.motors_enabled = True
+            self.togglemotors_button.setText("Disable")
+
+
     def home(self):
         self.bot.clear()
         self.bot.home()
+        self.motors_enabled = True
+        self.togglemotors_button.setText("Disable")
+        self.bot.zero()
+
+
+    def rhome(self):
+        self.bot.clear()
+        self.motors_enabled = True
+        self.togglemotors_button.setText("Disable")
+        self.bot.home_reverse()
+
+
+    def readpos(self):
+        pos = self.bot.read_positions()
+        self.textbox.setPlainText("pos "+ str(pos))
+
 
     def jog_a_right(self):
-        self.jog("a", 1)
+        self.jog(b"a", 1)
 
     def jog_a_left(self):
-        self.jog("a", -1)
+        self.jog(b"a", -1)
 
     def jog_b_right(self):
-        self.jog("b", 1)
+        self.jog(b"b", 1)
 
     def jog_b_left(self):
-        self.jog("b", -1)
+        self.jog(b"b", -1)
 
 
     def jog(self, axis, dir):
-        self.bot.clear()
-        #lena, lenb = self.bot.read_bufferlength()
-        #if ((axis == "a" and lena < 2000) or (axis == "b" and lenb < 2000)) :
-        timings = np.repeat(dir*0.0002, int(self.step_edit.text()))
-        self.bot.write_buffer(timings, np.repeat(1,len(timings)), bytes(axis.encode()))
-        self.textbox.setPlainText("buffer lengths "+ str(self.bot.read_bufferlength()))
+        #self.bot.clear()
+        # indices = {"a": 0, "b":1}
+        # lengths = self.bot.read_bufferlength()
+        # if lengths[indices[axis]] is not None:
+        #     if lengths[indices[axis]] < 2000 :
+        #         timings = np.repeat(dir*0.0002, int(self.step_spin.value()))
+        #         self.bot.write_buffer(timings, np.repeat(1,len(timings)), bytes(axis.encode()))
+        
+        # lengths = self.bot.read_bufferlength()
+        # self.textbox.setPlainText("buffer lengths "+ str(lengths))
+        self.bot.jog(axis,dir*self.step_spin.value())
+
+    def move(self):
         self.bot.start_moving()
-            #time.sleep(0.1) # VERY IMPORTANT! without buffer on the teensy will overflow
-        #else:
-        #    self.textbox.setPlainText("buffer is full")
+
+
+    def demo(self):
+        size = 500
+
+        count = 0
+        tx = 0
+        ty = 0
+        while count < 19:
+
+            print(self.bot.read_positions())
+            xlen, ylen = self.bot.read_bufferlength()
+            #print(count,"buffer length",xlen,ylen)
+
+            if xlen is not None:
+                if xlen <= ylen:
+                    if xlen < (3000-size):
+                        #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
+                        #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
+                        tx += size
+                        self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'a')
+                        
+                else:
+                    if ylen < (3000-size):
+                        #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
+                        #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
+                        ty += size
+                        self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'b')
+                        count += 1
+
+            time.sleep(0.01)
+
+
 
     def __del__(self):
         if self.bot is not None:
