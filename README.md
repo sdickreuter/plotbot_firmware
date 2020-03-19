@@ -13,3 +13,13 @@ Many thanks to the people who made this libraries, they are both awesome!
 
 This firmware is tested on a [Teensy](https://www.pjrc.com/teensy/) 3.1, but it will probably run on others too, 
 provided the PITimer library is working.
+
+## Contents
+### CBuffer.h
+Simple implementation of circular buffer. This is used for buffering the timing data on the microcontroller
+### Stepper.cpp & Stepper.h
+Class for wrapping the basic stepper motor driver control stuff
+### plotbot_commander.py
+Small gui written in python that offer basic control of the microcontroller and the steppers
+### plotbot_utils.py
+All the basic control stuff, has a class for controlling the bot in it
