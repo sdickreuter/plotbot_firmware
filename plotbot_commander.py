@@ -239,6 +239,7 @@ class Form(QtWidgets.QDialog):
             dtb = bdir*np.repeat( bsteps*0.0005/asteps, bsteps)
             dta = adir*np.repeat(0.0005, asteps)           
 
+
         print(apos, len(dta))
         print(bpos, len(dtb))
 
@@ -257,7 +258,7 @@ class Form(QtWidgets.QDialog):
             if alen is not None:
                 if alen <= blen and not a_finished:
                     if alen < (3000-size):
-                        if a_ind <= len(dta)-size:
+                        if a_ind < len(dta)-size:
                             self.bot.write_buffer(dta[a_ind:a_ind+size], np.repeat(1,size), b'a')
                             a_ind += size
                             print("a len", len(dta), "a ind", a_ind, "1")
@@ -270,7 +271,7 @@ class Form(QtWidgets.QDialog):
 
                 elif not b_finished:
                     if blen < (3000-size):
-                        if b_ind <= len(dtb)-size:
+                        if b_ind < len(dtb)-size:
                             self.bot.write_buffer(dtb[b_ind:b_ind+size], np.repeat(1,size), b'b')
                             b_ind += size
                             print("b len", len(dtb), "b ind", b_ind, "1")
@@ -280,6 +281,7 @@ class Form(QtWidgets.QDialog):
                             print("b len", len(dtb), "b ind", b_ind, "2")
                         else:
                             b_finished = True
+
 
             time.sleep(0.01)
 
