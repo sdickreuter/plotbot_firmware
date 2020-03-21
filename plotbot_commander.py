@@ -24,28 +24,31 @@ class Form(QtWidgets.QDialog):
         rightlayout.addWidget(self.connect_button)
 
 
-        self.step_spin = QtWidgets.QSpinBox()
-        self.step_spin.setRange(0, 3000)
-        self.step_spin.setSingleStep(10)
-        self.step_spin.setValue(500)
-        rightlayout.addWidget(self.step_spin)   
+        self.togglemotors_button = QtWidgets.QPushButton("Enable")
+        self.togglemotors_button.setEnabled(False)
+        rightlayout.addWidget(self.togglemotors_button)
 
 
         self.home_button = QtWidgets.QPushButton("Home")
         self.home_button.setEnabled(False)
         rightlayout.addWidget(self.home_button)
 
-        self.togglemotors_button = QtWidgets.QPushButton("Enable")
-        self.togglemotors_button.setEnabled(False)
-        rightlayout.addWidget(self.togglemotors_button)
+
+        self.move_button = QtWidgets.QPushButton("Move")
+        self.move_button.setEnabled(False)
+        rightlayout.addWidget(self.move_button)
 
         self.demo_button = QtWidgets.QPushButton("Demo")
         self.demo_button.setEnabled(False)
         rightlayout.addWidget(self.demo_button)
 
-        self.move_button = QtWidgets.QPushButton("Move")
-        self.move_button.setEnabled(False)
-        rightlayout.addWidget(self.move_button)
+
+        rightlayout.addWidget(QtWidgets.QLabel("#Steps:"))   
+        self.step_spin = QtWidgets.QSpinBox()
+        self.step_spin.setRange(0, 3000)
+        self.step_spin.setSingleStep(10)
+        self.step_spin.setValue(500)
+        rightlayout.addWidget(self.step_spin)   
 
 
         jog_a_layout = QtWidgets.QHBoxLayout()
