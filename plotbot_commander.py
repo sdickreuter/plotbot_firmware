@@ -151,6 +151,7 @@ class Form(QtWidgets.QDialog):
         self.motors_enabled = True
         self.togglemotors_button.setText("Disable")
         self.bot.zero()
+        self.demo_button.setEnabled(True)
 
 
     def rhome(self):
@@ -179,16 +180,6 @@ class Form(QtWidgets.QDialog):
 
 
     def jog(self, axis, dir):
-        #self.bot.clear()
-        # indices = {"a": 0, "b":1}
-        # lengths = self.bot.read_bufferlength()
-        # if lengths[indices[axis]] is not None:
-        #     if lengths[indices[axis]] < 2000 :
-        #         timings = np.repeat(dir*0.0002, int(self.step_spin.value()))
-        #         self.bot.write_buffer(timings, np.repeat(1,len(timings)), bytes(axis.encode()))
-        
-        # lengths = self.bot.read_bufferlength()
-        # self.textbox.setPlainText("buffer lengths "+ str(lengths))
         self.bot.jog(axis,dir*self.step_spin.value())
 
     def move(self):
@@ -196,29 +187,32 @@ class Form(QtWidgets.QDialog):
 
 
     def demo(self):
+        #xpos, ypos = self.bot.read_positions()
+
+
         size = 500
 
         count = 0
         tx = 0
         ty = 0
-        while count < 19:
+        while count < 59:
 
-            print(self.bot.read_positions())
+            #print(self.bot.read_positions())
             xlen, ylen = self.bot.read_bufferlength()
             #print(count,"buffer length",xlen,ylen)
 
             if xlen is not None:
                 if xlen <= ylen:
                     if xlen < (3000-size):
-                        #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
-                        #timings = generate_sine_movement(np.arange(start=tx,stop=tx+size))
+                        timings = pu.generate_sine_movement(np.arange(start=tx,stop=tx+size))
+                        #timings = pu.generate_sine_movement(np.arange(start=tx,stop=tx+size))
                         tx += size
                         self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'a')
                         
                 else:
                     if ylen < (3000-size):
-                        #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
-                        #timings = generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
+                        timings = pu.generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
+                        #timings = pu.generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
                         ty += size
                         self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'b')
                         count += 1
