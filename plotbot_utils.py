@@ -38,15 +38,16 @@ def serial_ports():
     return result
 
 
-def generate_sine_movement(t, freq = 0.0001, phase = 0.0,dtmin = 0.0001, dtmax = 0.001):
+# dtmin should not be smaller than 0.00005!
+def generate_sine_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.00005, dtmax = 0.001):
     y = np.sin(2*np.pi*t*freq+phase)*dtmax
     dt = np.zeros(len(y))
     dt[y < 0] = y[y < 0] + dtmin + dtmax
     dt[y >= 0] = y[y >= 0] - dtmin - dtmax
     return dt
 
-
-def generate_triangle_movement(t, freq = 0.0001, phase = 0.0,dtmin = 0.0001, dtmax = 0.001):
+# dtmin should not be smaller than 0.00005!
+def generate_triangle_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.00005, dtmax = 0.001):
     y = signal.sawtooth(2*np.pi*t*freq+phase,0.5)*dtmax
     dt = np.zeros(len(y))
     dt[y < 0] = y[y < 0] + dtmin + dtmax

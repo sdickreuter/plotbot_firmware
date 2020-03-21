@@ -34,7 +34,7 @@ class Form(QtWidgets.QDialog):
         rightlayout.addWidget(self.home_button)
 
 
-        self.move_button = QtWidgets.QPushButton("Move")
+        self.move_button = QtWidgets.QPushButton("Start Timers")
         self.move_button.setEnabled(False)
         rightlayout.addWidget(self.move_button)
 
@@ -119,7 +119,7 @@ class Form(QtWidgets.QDialog):
             self.bot = pu.PlotBot()
             self.bot.clear()
             self.home_button.setEnabled(True)
-            self.demo_button.setEnabled(True)
+            #self.demo_button.setEnabled(True)
             self.jog_a_left_button.setEnabled(True)
             self.jog_a_right_button.setEnabled(True)
             self.jog_b_left_button.setEnabled(True)
@@ -151,7 +151,6 @@ class Form(QtWidgets.QDialog):
         self.motors_enabled = True
         self.togglemotors_button.setText("Disable")
         self.bot.zero()
-        self.demo_button.setEnabled(True)
 
 
     def rhome(self):
@@ -184,11 +183,11 @@ class Form(QtWidgets.QDialog):
 
     def move(self):
         self.bot.start_moving()
+        self.demo_button.setEnabled(True)
 
 
     def demo(self):
         #xpos, ypos = self.bot.read_positions()
-
 
         size = 500
 
