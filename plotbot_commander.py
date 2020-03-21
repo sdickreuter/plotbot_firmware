@@ -80,6 +80,30 @@ class Form(QtWidgets.QDialog):
         rightlayout.addWidget(self.readpos_button)
 
 
+        aposlayout = QtWidgets.QHBoxLayout()
+        aposlayout.addWidget(QtWidgets.QLabel("a pos"))
+        self.a_spin = QtWidgets.QSpinBox()
+        self.a_spin.setRange(0, 45000)
+        self.a_spin.setSingleStep(100)
+        self.a_spin.setValue(1000)
+        aposlayout.addWidget(self.a_spin)
+        rightlayout.addLayout(aposlayout)
+
+        bposlayout = QtWidgets.QHBoxLayout()
+        bposlayout.addWidget(QtWidgets.QLabel("b pos"))
+        self.b_spin = QtWidgets.QSpinBox()
+        self.b_spin.setRange(0, 45000)
+        self.b_spin.setSingleStep(100)
+        self.b_spin.setValue(1000)
+        bposlayout.addWidget(self.b_spin)
+        rightlayout.addLayout(bposlayout)
+
+
+        self.moveto_button = QtWidgets.QPushButton("Move to")
+        self.moveto_button.setEnabled(False)
+        rightlayout.addWidget(self.moveto_button)
+
+
         leftlayout = QtWidgets.QVBoxLayout()
 
         self.textbox = QtWidgets.QPlainTextEdit(self)
@@ -112,6 +136,9 @@ class Form(QtWidgets.QDialog):
         self.rhome_button.clicked.connect(self.rhome)
         self.readpos_button.clicked.connect(self.readpos)
 
+        self.moveto_button.clicked.connect(self.moveto)
+
+
     # Greets the user
     def connect(self):
         self.bot = None
@@ -128,6 +155,7 @@ class Form(QtWidgets.QDialog):
             self.togglemotors_button.setEnabled(True)
             self.rhome_button.setEnabled(True)
             self.readpos_button.setEnabled(True)
+            self.moveto_button.setEnabled(True)
 
             self.textbox.setPlainText("Connected to plotbot at "+self.bot.serial.port)
         except:
@@ -181,10 +209,79 @@ class Form(QtWidgets.QDialog):
     def jog(self, axis, dir):
         self.bot.jog(axis,dir*self.step_spin.value())
 
+
     def move(self):
         self.bot.start_moving()
         self.demo_button.setEnabled(True)
 
+
+    def moveto(self):
+        a = self.a_spin.value()
+        b = self.b_spin.value()
+
+        self.bot.clear()
+        self.move()
+
+        apos, bpos = self.bot.read_positions()
+        asteps = a -apos
+        bsteps = b- bpos
+
+        adir = np.sign(asteps)
+        bdir = np.sign(bsteps)
+
+        asteps = np.abs(asteps)
+        bsteps = np.abs(bsteps)
+
+        if asteps > bsteps:
+            dta = adir*np.repeat( asteps*0.0005/bsteps, asteps)
+            dtb = bdir*np.repeat(0.0005, bsteps)
+        else:
+            dtb = bdir*np.repeat( bsteps*0.0005/asteps, bsteps)
+            dta = adir*np.repeat(0.0005, asteps)           
+
+        print(apos, len(dta))
+        print(bpos, len(dtb))
+
+        a_finished = False
+        b_finished = False
+
+        size = 500
+
+        a_ind = 0
+        b_ind = 0
+        while not (a_finished and b_finished):
+            
+            alen, blen = self.bot.read_bufferlength()
+            #print(not (a_finished and b_finished), alen, blen)
+
+            if alen is not None:
+                if alen <= blen and not a_finished:
+                    if alen < (3000-size):
+                        if a_ind <= len(dta)-size:
+                            self.bot.write_buffer(dta[a_ind:a_ind+size], np.repeat(1,size), b'a')
+                            a_ind += size
+                            print("a len", len(dta), "a ind", a_ind, "1")
+                        elif a_ind < len(dta)-1:
+                            self.bot.write_buffer(dta[a_ind:], np.repeat(1,len(dta[a_ind:])), b'a')
+                            a_ind += len(dta[a_ind:])  
+                            print("a len", len(dta), "a ind", a_ind, "2")
+                        else:
+                            a_finished = True  
+
+                elif not b_finished:
+                    if blen < (3000-size):
+                        if b_ind <= len(dtb)-size:
+                            self.bot.write_buffer(dtb[b_ind:b_ind+size], np.repeat(1,size), b'b')
+                            b_ind += size
+                            print("b len", len(dtb), "b ind", b_ind, "1")
+                        elif b_ind < len(dtb)-1:
+                            self.bot.write_buffer(dtb[b_ind:], np.repeat(1,len(dtb[b_ind:])), b'b')
+                            b_ind += len(dta[b_ind:])  
+                            print("b len", len(dtb), "b ind", b_ind, "2")
+                        else:
+                            b_finished = True
+
+            time.sleep(0.01)
 
     def demo(self):
         #xpos, ypos = self.bot.read_positions()
@@ -192,27 +289,27 @@ class Form(QtWidgets.QDialog):
         size = 500
 
         count = 0
-        tx = 0
-        ty = 0
-        while count < 59:
+        ta = 0
+        tb = 0
+        while count < 49:
 
             #print(self.bot.read_positions())
-            xlen, ylen = self.bot.read_bufferlength()
+            alen, blen = self.bot.read_bufferlength()
             #print(count,"buffer length",xlen,ylen)
 
-            if xlen is not None:
-                if xlen <= ylen:
-                    if xlen < (3000-size):
-                        timings = pu.generate_sine_movement(np.arange(start=tx,stop=tx+size))
+            if alen is not None:
+                if alen <= blen:
+                    if alen < (3000-size):
+                        timings = pu.generate_sine_movement(np.arange(start=ta,stop=ta+size))
                         #timings = pu.generate_sine_movement(np.arange(start=tx,stop=tx+size))
-                        tx += size
+                        ta += size
                         self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'a')
                         
                 else:
-                    if ylen < (3000-size):
-                        timings = pu.generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
+                    if blen < (3000-size):
+                        timings = pu.generate_sine_movement(np.arange(start=tb,stop=tb+size),phase=np.pi)
                         #timings = pu.generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
-                        ty += size
+                        tb += size
                         self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'b')
                         count += 1
 
