@@ -8,7 +8,7 @@ In contrast to most firmwares that steer the movement of stepper motors, this on
 Instead a buffer is filled from a pc with timing data that tells the microntroller when to make the steps.
 
 This firmware uses [PacketSerial](https://github.com/bakercp/PacketSerial) for serial communication 
-and [PITimer](https://github.com/loglow/PITimer) for getting the timing of the steps right. 
+,[PITimer](https://github.com/loglow/PITimer) for getting the timing of the steps right and [CircularBuffer](https://github.com/rlogiacco/CircularBuffer) for storing the timings. 
 Many thanks to the people who made this libraries, they are both awesome!
 
 This firmware is tested on a [Teensy](https://www.pjrc.com/teensy/) 3.1, but it will probably run on others too, 
