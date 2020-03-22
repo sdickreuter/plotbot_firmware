@@ -141,7 +141,8 @@ class PlotBot(object):
 
         finished = self.read_ok()
         if finished:
-            print("Wrote Buffer.")
+            pass
+            #print("Wrote Buffer.")
         else:
             print("Error writing Buffer")
 
