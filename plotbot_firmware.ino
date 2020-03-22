@@ -3,7 +3,6 @@
 #include <Bounce2.h>
 #include <PITimer.h>
 #include <PacketSerial.h>
-#include "CBuffer.h"
 #include "defines.h"
 
 #define CIRCULAR_BUFFER_INT_SAFE
@@ -11,8 +10,8 @@
 
 // 1500 * 4 * 64 bit = 48 kbytes, Teensy 3.2 has 64 kbytes of RAM
 // 3000 * 2* ( 32 bit + 8 bit) = 30 kbytes
-CircularBuffer<dtData, 3000> asteps;
-CircularBuffer<dtData, 3000> bsteps;
+CircularBuffer<dtData, BUFFER_SIZE> asteps;
+CircularBuffer<dtData, BUFFER_SIZE> bsteps;
 
 PacketSerial_<COBS, 0, MAX_BUFFER_ELEMENTS*sizeof(dtData)> myPacketSerial;
 
