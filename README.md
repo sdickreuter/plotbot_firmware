@@ -9,7 +9,7 @@ Instead a buffer is filled from a pc with timing data that tells the microntroll
 
 This firmware uses [PacketSerial](https://github.com/bakercp/PacketSerial) for serial communication 
 ,[PITimer](https://github.com/loglow/PITimer) for getting the timing of the steps right and [CircularBuffer](https://github.com/rlogiacco/CircularBuffer) for storing the timings. 
-Many thanks to the people who made this libraries, they are both awesome!
+Many thanks to the people who made this libraries, they are awesome!
 
 This firmware is tested on a [Teensy](https://www.pjrc.com/teensy/) 3.1, but it will probably run on others too, 
 provided the PITimer library is working.
