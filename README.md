@@ -15,6 +15,8 @@ This firmware is tested on a [Teensy](https://www.pjrc.com/teensy/) 3.1, but it 
 provided the PITimer library is working.
 
 ## Contents
+### plotbot_firmware.ino
+Main file, here the magic happens
 ### CBuffer.h
 Simple implementation of circular buffer. This is used for buffering the timing data on the microcontroller
 ### Stepper.cpp & Stepper.h
