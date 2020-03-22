@@ -157,9 +157,9 @@ class Form(QtWidgets.QDialog):
             self.readpos_button.setEnabled(True)
             self.moveto_button.setEnabled(True)
 
-            self.textbox.setPlainText("Connected to plotbot at "+self.bot.serial.port)
+            self.textbox.appendPlainText("Connected to plotbot at "+self.bot.serial.port)
         except:
-            self.textbox.setPlainText("Could not connect to plotbot")
+            self.textbox.appendPlainText("Could not connect to plotbot")
 
 
     def togglemotors(self):
@@ -190,7 +190,7 @@ class Form(QtWidgets.QDialog):
 
     def readpos(self):
         pos = self.bot.read_positions()
-        self.textbox.setPlainText("pos "+ str(pos))
+        self.textbox.appendPlainText("pos "+ str(pos))
 
 
     def jog_a_right(self):
@@ -218,6 +218,7 @@ class Form(QtWidgets.QDialog):
     def moveto(self):
         a = self.a_spin.value()
         b = self.b_spin.value()
+        self.textbox.appendPlainText("moveto "+str(a)+" "+str(b))
 
         self.bot.clear()
         self.move()
@@ -233,14 +234,17 @@ class Form(QtWidgets.QDialog):
         bsteps = np.abs(bsteps)
 
         if asteps > bsteps:
-            dta = adir*np.repeat(0.0005, asteps)    
-            dtb = bdir*np.repeat( asteps*0.0005/ bsteps, bsteps)
+            dta = np.repeat(0.0005, asteps)    
+            dtb = np.repeat( asteps*0.0005/ bsteps, bsteps)
         else:
-            dta = adir*np.repeat( bsteps*0.0005/ asteps, asteps)
-            dtb = bdir*np.repeat(0.0005, bsteps)
+            dta = np.repeat( bsteps*0.0005/ asteps, asteps)
+            dtb = np.repeat(0.0005, bsteps)
 
         dta[dta < 0.0005] += 0.0005
         dtb[dtb < 0.0005] += 0.0005
+
+        dta *= adir
+        dtb *= bdir
 
 
         print("dta ", dta)
