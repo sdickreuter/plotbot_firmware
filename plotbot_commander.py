@@ -233,18 +233,30 @@ class Form(QtWidgets.QDialog):
         bsteps = np.abs(bsteps)
 
         if asteps > bsteps:
-            dta = adir*np.repeat( asteps*0.0005/bsteps, asteps)
-            dtb = bdir*np.repeat(0.0005, bsteps)
+            dta = adir*np.repeat(0.0005, asteps)    
+            dtb = bdir*np.repeat( asteps*0.0005/ bsteps, bsteps)
         else:
-            dtb = bdir*np.repeat( bsteps*0.0005/asteps, bsteps)
-            dta = adir*np.repeat(0.0005, asteps)           
+            dta = adir*np.repeat( bsteps*0.0005/ asteps, asteps)
+            dtb = bdir*np.repeat(0.0005, bsteps)
 
+        dta[dta < 0.0005] += 0.0005
+        dtb[dtb < 0.0005] += 0.0005
+
+
+        print("dta ", dta)
+        print("dtb ",dtb)
 
         print(apos, len(dta))
         print(bpos, len(dtb))
 
-        a_finished = False
-        b_finished = False
+        if len(dta) > 0:
+            a_finished = False
+        else:
+            a_finished = True
+        if len(dtb) > 0:
+            b_finished = False
+        else:
+            b_finished = True
 
         size = 500
 
@@ -256,34 +268,27 @@ class Form(QtWidgets.QDialog):
             #print(not (a_finished and b_finished), alen, blen)
 
             if alen is not None:
-                if alen <= blen and not a_finished:
+                if (((alen <= blen) and (not a_finished)) or b_finished):
                     if alen < (3000-size):
-                        if a_ind < len(dta)-size:
-                            self.bot.write_buffer(dta[a_ind:a_ind+size], np.repeat(1,size), b'a')
+                        send = dta[a_ind:a_ind+size]
+                        if len(send) > 0:
+                            self.bot.write_buffer(send, np.repeat(1,len(send)), b'a')
                             a_ind += size
-                            print("a len", len(dta), "a ind", a_ind, "1")
-                        elif a_ind < len(dta)-1:
-                            self.bot.write_buffer(dta[a_ind:], np.repeat(1,len(dta[a_ind:])), b'a')
-                            a_ind += len(dta[a_ind:])  
-                            print("a len", len(dta), "a ind", a_ind, "2")
                         else:
                             a_finished = True  
 
                 elif not b_finished:
                     if blen < (3000-size):
-                        if b_ind < len(dtb)-size:
-                            self.bot.write_buffer(dtb[b_ind:b_ind+size], np.repeat(1,size), b'b')
+                        send = dtb[b_ind:b_ind+size]
+                        if len(send) > 0:
+                            self.bot.write_buffer(send, np.repeat(1,len(send)), b'b')
                             b_ind += size
-                            print("b len", len(dtb), "b ind", b_ind, "1")
-                        elif b_ind < len(dtb)-1:
-                            self.bot.write_buffer(dtb[b_ind:], np.repeat(1,len(dtb[b_ind:])), b'b')
-                            b_ind += len(dta[b_ind:])  
-                            print("b len", len(dtb), "b ind", b_ind, "2")
                         else:
-                            b_finished = True
+                            b_finished = True  
 
 
             time.sleep(0.01)
+
 
     def demo(self):
         #xpos, ypos = self.bot.read_positions()
