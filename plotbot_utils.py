@@ -39,7 +39,7 @@ def serial_ports():
 
 
 # dtmin should not be smaller than 0.00005!
-def generate_sine_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.00005, dtmax = 0.001):
+def generate_sine_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.0001, dtmax = 0.001):
     y = np.sin(2*np.pi*t*freq+phase)*dtmax
     dt = np.zeros(len(y))
     dt[y < 0] = y[y < 0] + dtmin + dtmax
@@ -47,7 +47,7 @@ def generate_sine_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.00005, dtmax
     return dt
 
 # dtmin should not be smaller than 0.00005!
-def generate_triangle_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.00005, dtmax = 0.001):
+def generate_triangle_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.0001, dtmax = 0.001):
     y = signal.sawtooth(2*np.pi*t*freq+phase,0.5)*dtmax
     dt = np.zeros(len(y))
     dt[y < 0] = y[y < 0] + dtmin + dtmax
@@ -128,11 +128,30 @@ class PlotBot(object):
             print("Error while jogging")
 
 
+    def set_servo(self, pos):
+        reply = b''
+        reply += b's'
+        reply += bytes(struct.pack('B',pos))
+        self.write(reply)
+
+    def pen_down(self):
+        reply = b''
+        reply += b's'
+        reply += bytes(struct.pack('B',140))
+        self.write(reply)
+
+
+    def pen_up(self):
+        reply = b''
+        reply += b's'
+        reply += bytes(struct.pack('B',80))
+        self.write(reply)
+
+
     def write_buffer(self, timings, actions, axis):
         reply = b''
         reply += b'b'
         reply += axis
-        reply += b's'
         reply += bytes(struct.pack('<l',len(timings)))
         for i in range(len(timings)):
             reply += bytes(struct.pack("<f", timings[i]))

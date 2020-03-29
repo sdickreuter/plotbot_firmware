@@ -33,32 +33,32 @@ Stepper::Stepper(int ENABLE,int MS1,int MS2,int SPREAD,int STEP,int DIR, bool fl
 }
 
 void Stepper::enableDriver(){
-  digitalWrite(this->ENBL_pin, LOW);
+  digitalWriteFast(this->ENBL_pin, LOW);
 }
 
 void Stepper::disableDriver(){
-  digitalWrite(this->ENBL_pin, HIGH);
+  digitalWriteFast(this->ENBL_pin, HIGH);
 }
 
 void Stepper::setMicrostepping(int MODE){
  
   switch (MODE) {
     case 0:  					// 1/8  microstep stealthChop
-      digitalWrite(this->MS1_pin, LOW);
-      digitalWrite(this->MS2_pin, LOW);
-      digitalWrite(this->SPREAD_pin, LOW);
+      digitalWriteFast(this->MS1_pin, LOW);
+      digitalWriteFast(this->MS2_pin, LOW);
+      digitalWriteFast(this->SPREAD_pin, LOW);
       this->stepping_factor = 8;
       break;
     case 1:					// 1/32  microstep stealthChop
-      digitalWrite(this->MS1_pin, HIGH);
-      digitalWrite(this->MS2_pin, LOW);
-      digitalWrite(this->SPREAD_pin, LOW);
+      digitalWriteFast(this->MS1_pin, HIGH);
+      digitalWriteFast(this->MS2_pin, LOW);
+      digitalWriteFast(this->SPREAD_pin, LOW);
       this->stepping_factor = 32;
       break;
     case 2:					// 1/64  microstep stealthChop
-      digitalWrite(this->MS1_pin, HIGH);
-      digitalWrite(this->MS2_pin, LOW);
-      digitalWrite(this->SPREAD_pin, LOW);
+      digitalWriteFast(this->MS1_pin, HIGH);
+      digitalWriteFast(this->MS2_pin, LOW);
+      digitalWriteFast(this->SPREAD_pin, LOW);
       this->stepping_factor = 64;
       break;
   }
@@ -76,17 +76,17 @@ long Stepper::get_pos() {
 void Stepper::set_dir(bool dir) {
   if ((dir>0) xor this->flipped) {
     this->dir = 1;
-    digitalWrite(this->DIR_pin, LOW);
+    digitalWriteFast(this->DIR_pin, LOW);
   } else {
   	this->dir = -1;
-    digitalWrite(this->DIR_pin, HIGH);
+    digitalWriteFast(this->DIR_pin, HIGH);
   }
 }
 
 void Stepper::step() {
-	digitalWrite(this->STEP_pin, HIGH);
+	digitalWriteFast(this->STEP_pin, HIGH);
 	delayMicroseconds(2);
-	digitalWrite(this->STEP_pin, LOW);
+	digitalWriteFast(this->STEP_pin, LOW);
 	delayMicroseconds(2);
 	if ((this->dir > 0) xor this->flipped) {
     this->position++;

@@ -104,6 +104,34 @@ class Form(QtWidgets.QDialog):
         rightlayout.addWidget(self.moveto_button)
 
 
+        self.manualpos_button = QtWidgets.QPushButton("Get Manual Pos")
+        self.manualpos_button.setEnabled(False)
+        rightlayout.addWidget(self.manualpos_button)
+
+
+        servo_layout = QtWidgets.QHBoxLayout()
+        self.servo_button = QtWidgets.QPushButton("Set Servo")
+        self.servo_button.setEnabled(False)
+        servo_layout.addWidget(self.servo_button)
+        self.servo_spin = QtWidgets.QSpinBox()
+        self.servo_spin.setRange(0, 180)
+        self.servo_spin.setSingleStep(10)
+        self.servo_spin.setValue(90)
+        servo_layout.addWidget(self.servo_spin)
+        rightlayout.addLayout(servo_layout)
+
+
+        pen_layout = QtWidgets.QHBoxLayout()
+        pen_layout.addWidget(QtWidgets.QLabel("Pen "))
+        self.up_button = QtWidgets.QPushButton("Up")
+        self.up_button.setEnabled(False)
+        pen_layout.addWidget(self.up_button)
+        self.down_button = QtWidgets.QPushButton("Down")
+        self.down_button.setEnabled(False)
+        pen_layout.addWidget(self.down_button)
+        rightlayout.addLayout(pen_layout)
+
+
         leftlayout = QtWidgets.QVBoxLayout()
 
         self.textbox = QtWidgets.QPlainTextEdit(self)
@@ -138,6 +166,11 @@ class Form(QtWidgets.QDialog):
 
         self.moveto_button.clicked.connect(self.moveto)
 
+        self.manualpos_button.clicked.connect(self.get_manual_position)
+        
+        self.servo_button.clicked.connect(self.set_servo)
+
+
 
     # Greets the user
     def connect(self):
@@ -145,6 +178,10 @@ class Form(QtWidgets.QDialog):
         try:
             self.bot = pu.PlotBot()
             self.bot.clear()
+
+            self.up_button.clicked.connect(self.bot.pen_up)
+            self.down_button.clicked.connect(self.bot.pen_down)
+
             self.home_button.setEnabled(True)
             #self.demo_button.setEnabled(True)
             self.jog_a_left_button.setEnabled(True)
@@ -156,6 +193,9 @@ class Form(QtWidgets.QDialog):
             self.rhome_button.setEnabled(True)
             self.readpos_button.setEnabled(True)
             self.moveto_button.setEnabled(True)
+            self.servo_button.setEnabled(True)
+            self.up_button.setEnabled(True)
+            self.down_button.setEnabled(True)
 
             self.textbox.appendPlainText("Connected to plotbot at "+self.bot.serial.port)
         except:
@@ -173,12 +213,36 @@ class Form(QtWidgets.QDialog):
             self.togglemotors_button.setText("Disable")
 
 
+    def set_servo(self):
+        self.bot.set_servo(self.servo_spin.value())
+
+    def get_manual_position(self):
+        self.bot.clear()
+        #self.bot.home()
+        #self.bot.zero()
+        self.bot.disable()        
+
+        msgBox = QtWidgets.QMessageBox()
+        msgBox.setText('Manually position pen and press ok when finished')
+        msgBox.exec();
+
+        self.bot.home()
+
+        pos = self.bot.read_positions()
+        print("manual pos: ",pos)
+        self.textbox.appendPlainText("manual pos: " + str(pos))
+        
+        self.bot.zero()
+        #return pos
+
+
     def home(self):
         self.bot.clear()
         self.bot.home()
+        self.bot.zero()
         self.motors_enabled = True
         self.togglemotors_button.setText("Disable")
-        self.bot.zero()
+        self.manualpos_button.setEnabled(True)
 
 
     def rhome(self):
@@ -224,8 +288,8 @@ class Form(QtWidgets.QDialog):
         self.move()
 
         apos, bpos = self.bot.read_positions()
-        asteps = a -apos
-        bsteps = b- bpos
+        asteps = a - apos
+        bsteps = b - bpos
 
         adir = np.sign(asteps)
         bdir = np.sign(bsteps)
@@ -245,13 +309,6 @@ class Form(QtWidgets.QDialog):
 
         dta *= adir
         dtb *= bdir
-
-
-        print("dta ", dta)
-        print("dtb ",dtb)
-
-        print(apos, len(dta))
-        print(bpos, len(dtb))
 
         if len(dta) > 0:
             a_finished = False

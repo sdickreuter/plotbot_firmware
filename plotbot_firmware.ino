@@ -3,6 +3,7 @@
 #include <Bounce2.h>
 #include <PITimer.h>
 #include <PacketSerial.h>
+#include <PWMServo.h>
 #include "defines.h"
 
 #define CIRCULAR_BUFFER_INT_SAFE
@@ -15,12 +16,7 @@ CircularBuffer<dtData, BUFFER_SIZE> bsteps;
 
 PacketSerial_<COBS, 0, MAX_BUFFER_ELEMENTS*sizeof(dtData)> myPacketSerial;
 
-#define topright_switch 3 // pin 9
-#define topleft_switch 2 // pin 10
-#define bottomleft_switch 1 // pin 11
-#define bottomright_switch 0 // pin 12
-// list for holding endswitch pinout
-int endswitch_pin[] = {11,10,9,8};
+PWMServo penservo;  // servo object to control up/down of the Pen
 
 // Bounce objects for endswitches
 Bounce topright_bounce = Bounce(); 
@@ -79,7 +75,6 @@ void step_bottom() {
 
 
 void updatea() {
-  //TODO: implement actions
 	if (moving) {
 	  if (!asteps.isEmpty()) {
 	    dta = asteps.shift();
@@ -93,6 +88,12 @@ void updatea() {
 	    }
 	    //stepper_top.step(); // unsafe stepping
 	    step_top(); // save stepping, checks the endswitches
+	    if (dta.action == PEN_UP) {
+    		penservo.write(POS_UP);
+	    } else if (dta.action == PEN_DOWN) {
+    	    		penservo.write(POS_DOWN);
+	    } 
+
 	  } else {
 	  		PITimer1.period(0.01);
 		}
@@ -104,7 +105,6 @@ void updatea() {
 }
 
 void updateb() {
-	//TODO: implement actions
 	if (moving) {
 	  if (!bsteps.isEmpty()) {
 	    dtb = bsteps.shift();
@@ -118,6 +118,11 @@ void updateb() {
 	    }
 	    //stepper_bottom.step(); // unsafe stepping
 	    step_bottom(); // save stepping, checks the endswitches
+	    if (dta.action == PEN_UP) {
+    		penservo.write(POS_UP);
+	    } else if (dta.action == PEN_DOWN) {
+    	    		penservo.write(POS_DOWN);
+	    } 
 	  } else {
 	  	PITimer2.period(0.01);
   	}
@@ -130,15 +135,18 @@ void updateb() {
 
 
 void setup() {
-  
-  // initialize endswitches
-  for (int i = 0; i<4; i++) {
-      pinMode(endswitch_pin[i], INPUT);
-  }
-  topright_bounce.attach(endswitch_pin[3]);
-  topleft_bounce.attach(endswitch_pin[2]);
-  bottomleft_bounce.attach(endswitch_pin[1]);
-  bottomright_bounce.attach(endswitch_pin[0]);
+  penservo.attach(SERVO_PWM);
+  penservo.write(40);
+
+  pinMode(TOPRIGHT_SWITCH, INPUT);
+  pinMode(TOPLEFT_SWITCH, INPUT);
+  pinMode(BOTTOMLEFT_SWITCH, INPUT);
+  pinMode(BOTTOMRIGHT_SWITCH, INPUT);
+
+  topright_bounce.attach(TOPRIGHT_SWITCH);
+  topleft_bounce.attach(TOPLEFT_SWITCH);
+  bottomleft_bounce.attach(BOTTOMLEFT_SWITCH);
+  bottomright_bounce.attach(BOTTOMRIGHT_SWITCH);
 
   topright_bounce.interval(1); // interval in ms
   topleft_bounce.interval(1); // interval in ms
@@ -303,8 +311,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     long offset = 1;
     char axis = *(buffer + offset);
     offset+=1;
-    char action = *(buffer + offset);
-    offset+=1;
     union_long size; 
     for (byte i=0; i<4; i++)     {
       size.b[i] = *(buffer+offset+i);
@@ -363,6 +369,12 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     transmitBuffer[1] = 'k';
     myPacketSerial.send(transmitBuffer, 2);
 
+  // 's' -> set pen-servo
+  } else if (command == 's') {
+	 	long offset = 1;
+    byte pos = *(buffer + offset);
+    penservo.write( (int) pos);
+
   // 'h' -> home motors
   } else if (command == 'h') {
     home_motors(false);
@@ -394,7 +406,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
   // 'l' -> send buffer lengths
   } else if (command == 'l') {
-    char axis = *(buffer + 1);
     long size;
     size = (long) asteps.size();
     transmitBuffer[0] = 'l';
@@ -457,7 +468,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
   // 'p' -> send stepper positions
   } else if (command == 'p') {
-    dtData data;
     union_long pos;
     int offset = 0;
     transmitBuffer[offset] = 'p';
