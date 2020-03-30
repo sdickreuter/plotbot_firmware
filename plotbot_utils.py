@@ -55,6 +55,12 @@ def generate_triangle_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.0001, dt
     return dt
 
 
+def read_tmng_files(filename):
+    a = np.loadtxt(filename+"_a.tmng",delimiter=" ",skiprows=1)
+    b = np.loadtxt(filename+"_b.tmng",delimiter=" ",skiprows=1)
+    return a, b
+
+
 class PlotBot(object):
 
     def __init__(self, comport=None):
@@ -144,7 +150,8 @@ class PlotBot(object):
     def pen_up(self):
         reply = b''
         reply += b's'
-        reply += bytes(struct.pack('B',80))
+        reply += bytes(struct.pack('B',90))
+        #reply += bytes(struct.pack('B',80))
         self.write(reply)
 
 
@@ -222,5 +229,10 @@ class PlotBot(object):
 
 
 if __name__ == '__main__':
-    bot = PlotBot()
-    bot.home()
+    #bot = PlotBot()
+    #bot.home()
+    a,b = read_tmng_files("./Zeichnung")
+    print(a.shape)
+    print(a)
+    print(b.shape)
+    print(b)

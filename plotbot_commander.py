@@ -33,10 +33,15 @@ class Form(QtWidgets.QDialog):
         self.home_button.setEnabled(False)
         rightlayout.addWidget(self.home_button)
 
-
         self.move_button = QtWidgets.QPushButton("Start Timers")
         self.move_button.setEnabled(False)
         rightlayout.addWidget(self.move_button)
+
+
+        self.runfile_button = QtWidgets.QPushButton("Run Files")
+        self.runfile_button.setEnabled(False)
+        rightlayout.addWidget(self.runfile_button)
+
 
         self.demo_button = QtWidgets.QPushButton("Demo")
         self.demo_button.setEnabled(False)
@@ -170,6 +175,7 @@ class Form(QtWidgets.QDialog):
         
         self.servo_button.clicked.connect(self.set_servo)
 
+        self.runfile_button.clicked.connect(self.runfile)
 
 
     # Greets the user
@@ -196,6 +202,7 @@ class Form(QtWidgets.QDialog):
             self.servo_button.setEnabled(True)
             self.up_button.setEnabled(True)
             self.down_button.setEnabled(True)
+            self.runfile_button.setEnabled(True)
 
             self.textbox.appendPlainText("Connected to plotbot at "+self.bot.serial.port)
         except:
@@ -239,6 +246,7 @@ class Form(QtWidgets.QDialog):
     def home(self):
         self.bot.clear()
         self.bot.home()
+        time.sleep(0.2)
         self.bot.zero()
         self.motors_enabled = True
         self.togglemotors_button.setText("Disable")
@@ -277,6 +285,55 @@ class Form(QtWidgets.QDialog):
     def move(self):
         self.bot.start_moving()
         self.demo_button.setEnabled(True)
+
+
+    def runfile(self):
+        self.bot.clear()
+        self.bot.start_moving()
+
+        a,b = pu.read_tmng_files("./Zeichnung")
+
+        if len(a) > 0:
+            a_finished = False
+        else:
+            a_finished = True
+        if len(b) > 0:
+            b_finished = False
+        else:
+            b_finished = True
+
+        size = 500
+
+        a_ind = 0
+        b_ind = 0
+        while not (a_finished and b_finished):
+            
+            alen, blen = self.bot.read_bufferlength()
+
+            if alen is not None:
+                if (((alen <= blen) and (not a_finished)) or b_finished):
+                    if alen < (3000-size):
+                        send = a[a_ind:a_ind+size,:]
+                        if len(send) > 0:
+                            self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int), b'a')
+                            a_ind += size
+                            print("alen ",alen," send b ",send.shape[0])
+                        else:
+                            a_finished = True  
+
+                elif not b_finished:
+                    if blen < (3000-size):
+                        send = b[b_ind:b_ind+size,:]
+                        if len(send) > 0:
+                            self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int), b'b')
+                            b_ind += size
+                            print("blen ",blen," send a ",send.shape[0])
+                        else:
+                            b_finished = True  
+
+
+            time.sleep(0.01)
+
 
 
     def moveto(self):
