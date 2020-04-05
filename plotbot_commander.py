@@ -88,7 +88,7 @@ class Form(QtWidgets.QDialog):
         aposlayout = QtWidgets.QHBoxLayout()
         aposlayout.addWidget(QtWidgets.QLabel("a pos"))
         self.a_spin = QtWidgets.QSpinBox()
-        self.a_spin.setRange(0, 45000)
+        self.a_spin.setRange(0, 45000) # max number of steps!
         self.a_spin.setSingleStep(100)
         self.a_spin.setValue(1000)
         aposlayout.addWidget(self.a_spin)
@@ -97,7 +97,7 @@ class Form(QtWidgets.QDialog):
         bposlayout = QtWidgets.QHBoxLayout()
         bposlayout.addWidget(QtWidgets.QLabel("b pos"))
         self.b_spin = QtWidgets.QSpinBox()
-        self.b_spin.setRange(0, 45000)
+        self.b_spin.setRange(0, 45000) # max number of steps!
         self.b_spin.setSingleStep(100)
         self.b_spin.setValue(1000)
         bposlayout.addWidget(self.b_spin)
@@ -289,6 +289,7 @@ class Form(QtWidgets.QDialog):
 
     def runfile(self):
         self.bot.clear()
+        self.bot.home()
         self.bot.start_moving()
 
         a,b = pu.read_tmng_files("./Zeichnung")
@@ -333,6 +334,8 @@ class Form(QtWidgets.QDialog):
 
 
             time.sleep(0.01)
+
+        self.moveto()
 
 
 

@@ -136,7 +136,7 @@ void updateb() {
 
 void setup() {
   penservo.attach(SERVO_PWM);
-  penservo.write(120);
+  penservo.write(50);
 
   pinMode(TOPRIGHT_SWITCH, INPUT);
   pinMode(TOPLEFT_SWITCH, INPUT);

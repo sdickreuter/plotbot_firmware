@@ -143,14 +143,14 @@ class PlotBot(object):
     def pen_down(self):
         reply = b''
         reply += b's'
-        reply += bytes(struct.pack('B',50))
+        reply += bytes(struct.pack('B',0))
         self.write(reply)
 
 
     def pen_up(self):
         reply = b''
         reply += b's'
-        reply += bytes(struct.pack('B',100))
+        reply += bytes(struct.pack('B',50))
         self.write(reply)
 
 
