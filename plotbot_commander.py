@@ -289,7 +289,12 @@ class Form(QtWidgets.QDialog):
 
     def runfile(self):
         self.bot.clear()
+        
         self.bot.home()
+        time.sleep(0.02)
+        
+        self.bot.zero()
+        
         self.bot.start_moving()
 
         a,b = pu.read_tmng_files("./Zeichnung")
@@ -335,6 +340,9 @@ class Form(QtWidgets.QDialog):
 
             time.sleep(0.01)
 
+        while alen > 0 or blen > 0:
+            alen, blen = self.bot.read_bufferlength()
+            time.sleep(0.05)
         self.moveto()
 
 
