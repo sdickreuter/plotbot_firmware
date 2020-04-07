@@ -175,12 +175,15 @@ void update_switches() {
 }
 
 
-void home_motors(bool reverse) {
+void _home_motors(bool reverse, int delay_mult) {
   // init variables that terminate the while loop
-  bool top_finished = false;
-  bool bottom_finished = false;
-  bool finished = false;
-  
+  bool top_finished;
+  bool bottom_finished;
+  bool finished;
+  top_finished = false;
+  bottom_finished = false;
+  finished = false;
+
   stepper_top.enableDriver();
   stepper_bottom.enableDriver();
 
@@ -202,7 +205,8 @@ void home_motors(bool reverse) {
     if (!bottom_finished) {
       stepper_bottom.step();
     }
-    
+    delayMicroseconds(delay_mult*DELAYMU);
+
     update_switches();
 
     if (topright_bounce.read()==LOW)  {
@@ -222,7 +226,6 @@ void home_motors(bool reverse) {
         finished = true;
       }
     }
-    delayMicroseconds(DELAYMU);
   }
 
 	if (!reverse) {
@@ -239,10 +242,20 @@ void home_motors(bool reverse) {
   for (int i = 0; i<128; i++) {
     stepper_top.step();
     stepper_bottom.step();
-    delayMicroseconds(DELAYMU);
+    delayMicroseconds(delay_mult*DELAYMU);
   }
-  
+
 }
+
+void home_motors(bool reverse) {
+  _home_motors(reverse,1);
+  for (int i = 0; i < 10; i++) {
+    update_switches();
+    delayMicroseconds(50);
+  }
+  _home_motors(reverse,10);
+}
+
 
 
 void jog(char axis, long steps) {
