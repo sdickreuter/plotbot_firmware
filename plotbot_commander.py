@@ -401,7 +401,7 @@ class Form(QtWidgets.QDialog):
                     if alen < (3000-size):
                         send = dta[a_ind:a_ind+size]
                         if len(send) > 0:
-                            self.bot.write_buffer(send, np.repeat(1,len(send)), b'a')
+                            self.bot.write_buffer(send, np.repeat(0,len(send)), b'a')
                             a_ind += size
                         else:
                             a_finished = True  
@@ -410,7 +410,7 @@ class Form(QtWidgets.QDialog):
                     if blen < (3000-size):
                         send = dtb[b_ind:b_ind+size]
                         if len(send) > 0:
-                            self.bot.write_buffer(send, np.repeat(1,len(send)), b'b')
+                            self.bot.write_buffer(send, np.repeat(0,len(send)), b'b')
                             b_ind += size
                         else:
                             b_finished = True  

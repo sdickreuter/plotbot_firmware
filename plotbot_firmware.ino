@@ -73,6 +73,16 @@ void step_bottom() {
   }
 }
 
+void clear() {
+  moving = false;
+  PITimer1.stop();
+  PITimer2.stop();
+  PITimer1.reset();
+  PITimer2.reset();
+  asteps.clear();
+  bsteps.clear();
+}
+
 
 void updatea() {
 	if (moving) {
@@ -86,13 +96,18 @@ void updatea() {
 	        PITimer1.period(dta.dt);
 	        stepper_top.set_dir(true);
 	    }
-	    //stepper_top.step(); // unsafe stepping
-	    step_top(); // save stepping, checks the endswitches
-	    if (dta.action == PEN_UP) {
-    		penservo.write(POS_UP);
-	    } else if (dta.action == PEN_DOWN) {
-    	    		penservo.write(POS_DOWN);
-	    } 
+      if (dta.action == DO_STEP) {
+        //stepper_top.step(); // unsafe stepping
+        step_top(); // save stepping, checks the endswitches
+      } else if (dta.action == PEN_UP) {
+        penservo.write(POS_UP);
+      } else if (dta.action == PEN_DOWN) {
+        penservo.write(POS_DOWN);
+      } else if (dta.action == PAUSE) {
+        // do nothing
+      } else if (dta.action == END) {
+        clear();
+      }
 
 	  } else {
 	  		PITimer1.period(0.01);
@@ -116,13 +131,18 @@ void updateb() {
 	        PITimer2.period(dtb.dt);
 	        stepper_bottom.set_dir(true);
 	    }
-	    //stepper_bottom.step(); // unsafe stepping
-	    step_bottom(); // save stepping, checks the endswitches
-	    if (dta.action == PEN_UP) {
+	    if (dtb.action == DO_STEP) {
+        //stepper_bottom.step(); // unsafe stepping
+        step_bottom(); // save stepping, checks the endswitches
+      } else if (dtb.action == PEN_UP) {
     		penservo.write(POS_UP);
-	    } else if (dta.action == PEN_DOWN) {
-    	    		penservo.write(POS_DOWN);
-	    } 
+	    } else if (dtb.action == PEN_DOWN) {
+    		penservo.write(POS_DOWN);
+	    } else if (dtb.action == PAUSE) {
+        // do nothing
+      } else if (dtb.action == END) {
+        clear();
+      }
 	  } else {
 	  	PITimer2.period(0.01);
   	}
@@ -470,14 +490,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'c' -> clear buffers
   } else if (command == 'c') {
-  	moving = false;
-    PITimer1.stop();
-		PITimer2.stop();
-		PITimer1.reset();
-		PITimer2.reset();
-    asteps.clear();
-    bsteps.clear();
-
+    clear();
 
   // 'p' -> send stepper positions
   } else if (command == 'p') {
