@@ -323,7 +323,7 @@ class Form(QtWidgets.QDialog):
                         if len(send) > 0:
                             self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int), b'a')
                             a_ind += size
-                            print("alen ",alen," send b ",send.shape[0])
+                            #print("alen ",alen," send b ",send.shape[0])
                         else:
                             a_finished = True  
 
@@ -333,12 +333,12 @@ class Form(QtWidgets.QDialog):
                         if len(send) > 0:
                             self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int), b'b')
                             b_ind += size
-                            print("blen ",blen," send a ",send.shape[0])
+                            #print("blen ",blen," send a ",send.shape[0])
                         else:
                             b_finished = True  
 
 
-            time.sleep(0.01)
+            time.sleep(0.02)
 
         while alen > 0 or blen > 0:
             alen, blen = self.bot.read_bufferlength()

@@ -16,8 +16,6 @@ provided the PITimer library is working.
 ## Contents
 ### plotbot_firmware.ino
 Main file, where the magic happens.
-### CBuffer.h
-Simple implementation of circular buffer. This is used for buffering the timing data on the microcontroller
 ### Stepper.cpp & Stepper.h
 Class for wrapping the basic stepper motor driver control stuff
 ### plotbot_commander.py

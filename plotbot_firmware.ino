@@ -5,6 +5,7 @@
 #include <PacketSerial.h>
 #include <PWMServo.h>
 #include "defines.h"
+#include "pid.h"
 
 #define CIRCULAR_BUFFER_INT_SAFE
 #include "CircularBuffer.h"
@@ -25,9 +26,6 @@ Bounce bottomleft_bounce = Bounce();
 Bounce bottomright_bounce = Bounce(); 
 
 
-elapsedMicros mu;
-elapsedMicros pressed;
-
 //Stepper::Stepper(int ENABLE,int MS1,int MS2,int SPREAD,int STEP,int DIR)
 Stepper stepper_bottom(TOP_ENABLE, TOP_MS1, TOP_MS2, TOP_SPRD, TOP_STEP, TOP_DIR,true);
 Stepper stepper_top(BOTTOM_ENABLE, BOTTOM_MS1, BOTTOM_MS2, BOTTOM_SPRD, BOTTOM_STEP, BOTTOM_DIR,false);
@@ -37,9 +35,26 @@ Stepper stepper_top(BOTTOM_ENABLE, BOTTOM_MS1, BOTTOM_MS2, BOTTOM_SPRD, BOTTOM_S
 dtData dta;
 dtData dtb;
 
+// keep track of elapsed times
+elapsedMicros amus;
+elapsedMicros bmus;
+PID pida;
+float a_buf;
+float ta_actual;
+float ta_target;
+PID pidb;
+float b_buf;
+float tb_actual;
+float tb_target;
+float dt;
+
 // variable for state of motors, if true buffers will be checked for content regularly, and if they
 // have timings in them the steps will be performed
 bool moving = false;
+
+// has the movement started ?
+bool astarted = false;
+bool bstarted = false;
 
 
 // do a step but check state of endswitches first
@@ -89,20 +104,41 @@ void updatea() {
 	  if (!asteps.isEmpty()) {
 	    dta = asteps.shift();
 	    if (dta.dt < 0.0) {
-	        PITimer1.period(-1.0*dta.dt);
+          a_buf = (-1.0*dta.dt);
 	        stepper_top.set_dir(false);   
 	    }
 	    else {
-	        PITimer1.period(dta.dt);
+          a_buf = dta.dt;
 	        stepper_top.set_dir(true);
 	    }
+      
+      if (!astarted) {
+        astarted = true;
+        amus = 0;
+        ta_actual = 0.0;
+        ta_target = 0.0;
+        PITimer1.period(a_buf);
+        init_pid(pida);
+      } else {
+        ta_actual = ((float) amus)*1e-6;
+        dt = calc_pid(pida, ta_target-ta_actual);
+        if (dt+a_buf > 1e-6) {
+          PITimer1.period(a_buf + dt);
+        } else {
+          PITimer1.period(a_buf);          
+        }
+      }
+      ta_target += a_buf;
+
       if (dta.action == DO_STEP) {
         //stepper_top.step(); // unsafe stepping
         step_top(); // save stepping, checks the endswitches
       } else if (dta.action == PEN_UP) {
         penservo.write(POS_UP);
+        astarted = false;
       } else if (dta.action == PEN_DOWN) {
         penservo.write(POS_DOWN);
+        astarted = false;
       } else if (dta.action == PAUSE) {
         // do nothing
       } else if (dta.action == END) {
@@ -123,14 +159,33 @@ void updateb() {
 	if (moving) {
 	  if (!bsteps.isEmpty()) {
 	    dtb = bsteps.shift();
-	    if (dtb.dt < 0.0) {
-	        PITimer2.period(-1.0*dtb.dt);
-	        stepper_bottom.set_dir(false);   
-	    }
-	    else {
-	        PITimer2.period(dtb.dt);
-	        stepper_bottom.set_dir(true);
-	    }
+      if (dtb.dt < 0.0) {
+          b_buf = (-1.0*dtb.dt);
+          stepper_bottom.set_dir(false);   
+      }
+      else {
+          b_buf = dtb.dt;
+          stepper_bottom.set_dir(true);
+      }
+      
+      if (!bstarted) {
+        bstarted = true;
+        bmus = 0;
+        tb_actual = 0.0;
+        tb_target = 0.0;
+        PITimer2.period(b_buf);
+        init_pid(pidb);
+      } else {
+        tb_actual = ((float) bmus)*1e-6;
+        dt = calc_pid(pidb, tb_target-tb_actual);
+        if (dt+b_buf > 1e-6) {
+          PITimer2.period(b_buf + dt);
+        } else {
+          PITimer2.period(b_buf);          
+        }
+      }
+      tb_target += b_buf;
+      
 	    if (dtb.action == DO_STEP) {
         //stepper_bottom.step(); // unsafe stepping
         step_bottom(); // save stepping, checks the endswitches
@@ -139,6 +194,7 @@ void updateb() {
 	    } else if (dtb.action == PEN_DOWN) {
     		penservo.write(POS_DOWN);
 	    } else if (dtb.action == PAUSE) {
+        bstarted = false;
         // do nothing
       } else if (dtb.action == END) {
         clear();
@@ -455,6 +511,8 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'm' -> start moving
   } else if (command == 'm') {
+    astarted = false;
+    bstarted = false;
   	if (!moving) {
   		moving = true;
 	  	PITimer1.reset();
