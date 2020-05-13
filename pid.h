@@ -1,6 +1,6 @@
-#define KP 1.01
-#define KI -0.001
-#define KD -0.01
+#define KP 1.0
+#define KI 0.0 //0.00001
+#define KD 0.0 //0.0001
 
 // struct for storing step timings
 struct PID {

@@ -42,11 +42,12 @@ PID pida;
 float a_buf;
 float ta_actual;
 float ta_target;
+float dda;
 PID pidb;
 float b_buf;
 float tb_actual;
 float tb_target;
-float dt;
+float ddb;
 
 // variable for state of motors, if true buffers will be checked for content regularly, and if they
 // have timings in them the steps will be performed
@@ -121,9 +122,9 @@ void updatea() {
         init_pid(pida);
       } else {
         ta_actual = ((float) amus)*1e-6;
-        dt = calc_pid(pida, ta_target-ta_actual);
-        if (dt+a_buf > 1e-6) {
-          PITimer1.period(a_buf + dt);
+        dda = calc_pid(pida, ta_target-ta_actual);
+        if (dda+a_buf > 1e-6) {
+          PITimer1.period(a_buf + dda);
         } else {
           PITimer1.period(a_buf);          
         }
@@ -177,9 +178,9 @@ void updateb() {
         init_pid(pidb);
       } else {
         tb_actual = ((float) bmus)*1e-6;
-        dt = calc_pid(pidb, tb_target-tb_actual);
-        if (dt+b_buf > 1e-6) {
-          PITimer2.period(b_buf + dt);
+        ddb = calc_pid(pidb, tb_target-tb_actual);
+        if (ddb+b_buf > 1e-6) {
+          PITimer2.period(b_buf + ddb);
         } else {
           PITimer2.period(b_buf);          
         }
