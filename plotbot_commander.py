@@ -43,11 +43,6 @@ class Form(QtWidgets.QDialog):
         rightlayout.addWidget(self.runfile_button)
 
 
-        self.demo_button = QtWidgets.QPushButton("Demo")
-        self.demo_button.setEnabled(False)
-        rightlayout.addWidget(self.demo_button)
-
-
         rightlayout.addWidget(QtWidgets.QLabel("#Steps:"))   
         self.step_spin = QtWidgets.QSpinBox()
         self.step_spin.setRange(0, 3000)
@@ -160,8 +155,6 @@ class Form(QtWidgets.QDialog):
         self.jog_b_right_button.clicked.connect(self.jog_b_right)
         self.jog_b_left_button.clicked.connect(self.jog_b_left)
 
-        self.demo_button.clicked.connect(self.demo)
-
         self.move_button.clicked.connect(self.move)
         self.togglemotors_button.clicked.connect(self.togglemotors)
         self.motors_enabled = False
@@ -189,7 +182,6 @@ class Form(QtWidgets.QDialog):
             self.down_button.clicked.connect(self.bot.pen_down)
 
             self.home_button.setEnabled(True)
-            #self.demo_button.setEnabled(True)
             self.jog_a_left_button.setEnabled(True)
             self.jog_a_right_button.setEnabled(True)
             self.jog_b_left_button.setEnabled(True)
@@ -284,7 +276,6 @@ class Form(QtWidgets.QDialog):
 
     def move(self):
         self.bot.start_moving()
-        self.demo_button.setEnabled(True)
 
 
     def runfile(self):
@@ -297,51 +288,31 @@ class Form(QtWidgets.QDialog):
         
         self.bot.start_moving()
 
-        a,b = pu.read_tmng_files("./Zeichnung")
-
-        if len(a) > 0:
-            a_finished = False
-        else:
-            a_finished = True
-        if len(b) > 0:
-            b_finished = False
-        else:
-            b_finished = True
+        t = pu.read_tmng_files("./Zeichnung.tmng")
 
         size = 500
 
-        a_ind = 0
-        b_ind = 0
-        while not (a_finished and b_finished):
+        finished = False
+
+        ind = 0
+        while not finished:
             
-            alen, blen = self.bot.read_bufferlength()
+            l = self.bot.read_bufferlength()
 
-            if alen is not None:
-                if (((alen <= blen) and (not a_finished)) or b_finished):
-                    if alen < (3000-size):
-                        send = a[a_ind:a_ind+size,:]
-                        if len(send) > 0:
-                            self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int), b'a')
-                            a_ind += size
-                            #print("alen ",alen," send b ",send.shape[0])
-                        else:
-                            a_finished = True  
-
-                elif not b_finished:
-                    if blen < (3000-size):
-                        send = b[b_ind:b_ind+size,:]
-                        if len(send) > 0:
-                            self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int), b'b')
-                            b_ind += size
-                            #print("blen ",blen," send a ",send.shape[0])
-                        else:
-                            b_finished = True  
-
+            if l is not None:
+                if l < (3000-size):
+                    send = t[ind:ind+size,:]
+                    if len(send) > 0:
+                        self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int))
+                        ind += size
+                        #print("alen ",alen," send b ",send.shape[0])
+                    else:
+                        finished = True  
 
             time.sleep(0.02)
 
-        while alen > 0 or blen > 0:
-            alen, blen = self.bot.read_bufferlength()
+        while l > 0:
+            l = self.bot.read_bufferlength()
             time.sleep(0.05)
         self.moveto()
 
@@ -417,40 +388,6 @@ class Form(QtWidgets.QDialog):
 
 
             time.sleep(0.01)
-
-
-    def demo(self):
-        #xpos, ypos = self.bot.read_positions()
-
-        size = 500
-
-        count = 0
-        ta = 0
-        tb = 0
-        while count < 49:
-
-            #print(self.bot.read_positions())
-            alen, blen = self.bot.read_bufferlength()
-            #print(count,"buffer length",xlen,ylen)
-
-            if alen is not None:
-                if alen <= blen:
-                    if alen < (3000-size):
-                        timings = pu.generate_sine_movement(np.arange(start=ta,stop=ta+size))
-                        #timings = pu.generate_sine_movement(np.arange(start=tx,stop=tx+size))
-                        ta += size
-                        self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'a')
-                        
-                else:
-                    if blen < (3000-size):
-                        timings = pu.generate_sine_movement(np.arange(start=tb,stop=tb+size),phase=np.pi)
-                        #timings = pu.generate_sine_movement(np.arange(start=ty,stop=ty+size),phase=np.pi)
-                        tb += size
-                        self.bot.write_buffer(timings, np.repeat(1,len(timings)), b'b')
-                        count += 1
-
-            time.sleep(0.01)
-
 
 
     def __del__(self):

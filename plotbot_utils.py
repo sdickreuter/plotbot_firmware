@@ -56,9 +56,8 @@ def generate_triangle_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.0001, dt
 
 
 def read_tmng_files(filename):
-    a = np.loadtxt(filename+"_a.tmng",delimiter=" ",skiprows=1)
-    b = np.loadtxt(filename+"_b.tmng",delimiter=" ",skiprows=1)
-    return a, b
+    return np.loadtxt(filename,delimiter=" ",skiprows=1)
+     
 
 
 class PlotBot(object):
@@ -154,10 +153,9 @@ class PlotBot(object):
         self.write(reply)
 
 
-    def write_buffer(self, timings, actions, axis):
+    def write_buffer(self, timings, actions):
         reply = b''
         reply += b'b'
-        reply += axis
         reply += bytes(struct.pack('<l',len(timings)))
         for i in range(len(timings)):
             reply += bytes(struct.pack("<f", timings[i]))
@@ -184,10 +182,9 @@ class PlotBot(object):
 
         if len(msg) > 1:
             if msg[0] == ord("l"): 
-                xlen = struct.unpack('<l',msg[2:6])[0]
-                ylen = struct.unpack('<l',msg[7:11])[0]
-                return xlen, ylen
-        return None, None
+                l = struct.unpack('<l',msg[1:5])[0]
+                return l
+        return None
 
 
     def read_positions(self):
@@ -230,8 +227,6 @@ class PlotBot(object):
 if __name__ == '__main__':
     #bot = PlotBot()
     #bot.home()
-    a,b = read_tmng_files("./Zeichnung")
+    a = read_tmng_files("./Zeichnung")
     print(a.shape)
     print(a)
-    print(b.shape)
-    print(b)

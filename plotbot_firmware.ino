@@ -10,10 +10,9 @@
 #define CIRCULAR_BUFFER_INT_SAFE
 #include "CircularBuffer.h"
 
-// 1500 * 4 * 64 bit = 48 kbytes, Teensy 3.2 has 64 kbytes of RAM
+// Teensy 3.2 has 64 kbytes of RAM
 // 3000 * 2* ( 32 bit + 8 bit) = 30 kbytes
-CircularBuffer<dtData, BUFFER_SIZE> asteps;
-CircularBuffer<dtData, BUFFER_SIZE> bsteps;
+CircularBuffer<dtData, BUFFER_SIZE> timings;
 
 PacketSerial_<COBS, 0, MAX_BUFFER_ELEMENTS*sizeof(dtData)> myPacketSerial;
 
@@ -32,30 +31,22 @@ Stepper stepper_top(BOTTOM_ENABLE, BOTTOM_MS1, BOTTOM_MS2, BOTTOM_SPRD, BOTTOM_S
 
 
 // variables for storing objects from buffers
-dtData dta;
-dtData dtb;
+dtData dtbuf;
 
 // keep track of elapsed times
-elapsedMicros amus;
-elapsedMicros bmus;
-PID pida;
-float a_buf;
-float ta_actual;
-float ta_target;
-float dda;
-PID pidb;
-float b_buf;
-float tb_actual;
-float tb_target;
-float ddb;
+elapsedMicros mus;
+PID pid;
+float t_buf;
+float t_actual;
+float t_target;
+float ddt;
 
 // variable for state of motors, if true buffers will be checked for content regularly, and if they
 // have timings in them the steps will be performed
 bool moving = false;
 
 // has the movement started ?
-bool astarted = false;
-bool bstarted = false;
+bool started = false;
 
 
 // do a step but check state of endswitches first
@@ -92,57 +83,68 @@ void step_bottom() {
 void clear() {
   moving = false;
   PITimer1.stop();
-  PITimer2.stop();
   PITimer1.reset();
-  PITimer2.reset();
-  asteps.clear();
-  bsteps.clear();
+  timings.clear();
 }
 
 
-void updatea() {
+void update() {
 	if (moving) {
-	  if (!asteps.isEmpty()) {
-	    dta = asteps.shift();
-	    if (dta.dt < 0.0) {
-          a_buf = (-1.0*dta.dt);
-	        stepper_top.set_dir(false);   
+	  if (!timings.isEmpty()) {
+	    dtbuf = timings.shift();
+	   
+      if (dtbuf.dt < 0.0) {
+          t_buf = (-1.0*dtbuf.dt);
+          if (dtbuf.action == STEP_A) {
+            stepper_top.set_dir(false);   
+          } else if (dtbuf.action == STEP_B) {
+            stepper_bottom.set_dir(false);   
+          }
 	    }
 	    else {
-          a_buf = dta.dt;
-	        stepper_top.set_dir(true);
-	    }
+          t_buf = dtbuf.dt;
+          if (dtbuf.action == STEP_A) {
+            stepper_top.set_dir(true);   
+          } else if (dtbuf.action == STEP_B) {
+            stepper_bottom.set_dir(true);   
+          }	    
+      }
       
-      if (!astarted) {
-        astarted = true;
-        amus = 0;
-        ta_actual = 0.0;
-        ta_target = 0.0;
-        PITimer1.period(a_buf);
-        init_pid(pida);
+
+      if (!started) {
+        started = true;
+        mus = 0;
+        t_actual = 0.0;
+        t_target = 0.0;
+        PITimer1.period(t_buf);
+        init_pid(pid);
       } else {
-        ta_actual = ((float) amus)*1e-6;
-        dda = calc_pid(pida, ta_target-ta_actual);
-        if (dda+a_buf > 1e-6) {
-          PITimer1.period(a_buf + dda);
+        t_actual = ((float) mus)*1e-6;
+        ddt = calc_pid(pid, t_target-t_actual);
+        if (ddt+t_buf > 1e-6) {
+          PITimer1.period(t_buf + ddt);
         } else {
-          PITimer1.period(a_buf);          
+          PITimer1.period(t_buf);          
         }
       }
-      ta_target += a_buf;
+      t_target += t_buf;
 
-      if (dta.action == DO_STEP) {
+
+      if (dtbuf.action == STEP_A) {
         //stepper_top.step(); // unsafe stepping
         step_top(); // save stepping, checks the endswitches
-      } else if (dta.action == PEN_UP) {
+      } else if (dtbuf.action == STEP_B) {
+        //stepper_bottom.step(); // unsafe stepping
+        step_bottom(); // save stepping, checks the endswitches
+      } else if (dtbuf.action == PEN_UP) {
         penservo.write(POS_UP);
-        astarted = false;
-      } else if (dta.action == PEN_DOWN) {
+        started = false;
+      } else if (dtbuf.action == PEN_DOWN) {
         penservo.write(POS_DOWN);
-        astarted = false;
-      } else if (dta.action == PAUSE) {
+        started = false;
+      } else if (dtbuf.action == PAUSE) {
         // do nothing
-      } else if (dta.action == END) {
+      } else if (dtbuf.action == END) {
         clear();
       }
 
@@ -153,60 +155,6 @@ void updatea() {
 	  // stop timer if buffer is empty and moving is false
     PITimer1.stop();
     PITimer1.reset();
-  }
-}
-
-void updateb() {
-	if (moving) {
-	  if (!bsteps.isEmpty()) {
-	    dtb = bsteps.shift();
-      if (dtb.dt < 0.0) {
-          b_buf = (-1.0*dtb.dt);
-          stepper_bottom.set_dir(false);   
-      }
-      else {
-          b_buf = dtb.dt;
-          stepper_bottom.set_dir(true);
-      }
-      
-      if (!bstarted) {
-        bstarted = true;
-        bmus = 0;
-        tb_actual = 0.0;
-        tb_target = 0.0;
-        PITimer2.period(b_buf);
-        init_pid(pidb);
-      } else {
-        tb_actual = ((float) bmus)*1e-6;
-        ddb = calc_pid(pidb, tb_target-tb_actual);
-        if (ddb+b_buf > 1e-6) {
-          PITimer2.period(b_buf + ddb);
-        } else {
-          PITimer2.period(b_buf);          
-        }
-      }
-      tb_target += b_buf;
-      
-	    if (dtb.action == DO_STEP) {
-        //stepper_bottom.step(); // unsafe stepping
-        step_bottom(); // save stepping, checks the endswitches
-      } else if (dtb.action == PEN_UP) {
-    		penservo.write(POS_UP);
-	    } else if (dtb.action == PEN_DOWN) {
-    		penservo.write(POS_DOWN);
-	    } else if (dtb.action == PAUSE) {
-        bstarted = false;
-        // do nothing
-      } else if (dtb.action == END) {
-        clear();
-      }
-	  } else {
-	  	PITimer2.period(0.01);
-  	}
-	} else {		
-	  // stop timer if buffer is empty and moving is false
-    PITimer2.stop();
-    PITimer2.reset();
   }
 }
 
@@ -239,9 +187,9 @@ void setup() {
   // onPacketReceived function below.
   myPacketSerial.setPacketHandler(&onPacketReceived);
 
-  PITimer1.set_callback(updatea);
-  PITimer2.set_callback(updateb);
+  PITimer1.set_callback(update);
 }
+
 
 void update_switches() {
 	// update all bounce objects
@@ -399,8 +347,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   if (command == 'b') {
     dtData data;
     long offset = 1;
-    char axis = *(buffer + offset);
-    offset+=1;
     union_long size; 
     for (byte i=0; i<4; i++)     {
       size.b[i] = *(buffer+offset+i);
@@ -409,39 +355,21 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
     union_float dt;
 
-    if (axis == 'a') {
     	//if ( size.l < (BUFFER_SIZE-length_cb(&asteps)) ) {
-    	if ( size.l < 2000 ) {
-	      for (long c=0; c<size.l; c++) {
-        	for (byte i=0; i<4; i++) {
-         		dt.b[i] = *(buffer+offset+i);
-	        }
-	        data.dt = dt.f;
-	        data.action = *(buffer+offset+4);
-	        asteps.push(data);
-	        offset += 5;
-	      }
-  	    transmitBuffer[0] = 'o';
-	    	transmitBuffer[1] = 'k';
-  	  	myPacketSerial.send(transmitBuffer, 2);
-    	}
-    } else if (axis == 'b') {
-    	//if ( size.l < (BUFFER_SIZE-length_cb(&bsteps)) ) {
-    	if ( size.l < 2000 ) {
-	      for (long c=0; c<size.l; c++) {
-	        for (byte i=0; i<4; i++) {
-	          dt.b[i] = *(buffer+offset+i);
-	        }
-	        data.dt = dt.f;
-	        data.action = *(buffer+offset+4);
-	        bsteps.push(data);
-	        offset += 5;
-	      }
-  	    transmitBuffer[0] = 'o';
-	    	transmitBuffer[1] = 'k';
-  	  	myPacketSerial.send(transmitBuffer, 2);
-	    }
-    } 
+  	if ( size.l < 2000 ) {
+      for (long c=0; c<size.l; c++) {
+      	for (byte i=0; i<4; i++) {
+       		dt.b[i] = *(buffer+offset+i);
+        }
+        data.dt = dt.f;
+        data.action = *(buffer+offset+4);
+        timings.push(data);
+        offset += 5;
+      }
+	    transmitBuffer[0] = 'o';
+    	transmitBuffer[1] = 'k';
+	  	myPacketSerial.send(transmitBuffer, 2);
+  	}
 
   // 'j' -> jog motor
   } else if (command == 'j') {
@@ -494,33 +422,23 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     stepper_top.disableDriver();
     stepper_bottom.disableDriver();
 
-  // 'l' -> send buffer lengths
+  // 'l' -> send buffer length
   } else if (command == 'l') {
     long size;
-    size = (long) asteps.size();
+    size = (long) timings.size();
     transmitBuffer[0] = 'l';
-    transmitBuffer[1] = 'a';
     for (int i=0; i<4; i++) {
-        transmitBuffer[i+2]=((size>>(i*8)) & 0xff);
+        transmitBuffer[i+1]=((size>>(i*8)) & 0xff);
     }
-    size = (long) bsteps.size();
-    transmitBuffer[6] = 'b';
-    for (int i=0; i<4; i++) {
-        transmitBuffer[i+7]=((size>>(i*8)) & 0xff);
-    }
-    myPacketSerial.send(transmitBuffer, 11);
+    myPacketSerial.send(transmitBuffer, 5);
   
   // 'm' -> start moving
   } else if (command == 'm') {
-    astarted = false;
-    bstarted = false;
+    started = false;
   	if (!moving) {
   		moving = true;
 	  	PITimer1.reset();
 	  	PITimer1.period(0.1);
-	  	PITimer2.reset();
-	  	PITimer2.period(0.1);
-	  	PITimer2.start(); 
 	  	PITimer1.start();		
   	}
     // if (length_cb(&asteps)>0) {
