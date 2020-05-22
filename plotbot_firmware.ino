@@ -11,7 +11,7 @@
 #include "CircularBuffer.h"
 
 // Teensy 3.2 has 64 kbytes of RAM
-// 3000 * 2* ( 32 bit + 8 bit) = 30 kbytes
+// sizeof(dtData) = 5 bytes
 CircularBuffer<dtData, BUFFER_SIZE> timings;
 
 PacketSerial_<COBS, 0, MAX_BUFFER_ELEMENTS*sizeof(dtData)> myPacketSerial;
@@ -93,58 +93,59 @@ void update() {
 	  if (!timings.isEmpty()) {
 	    dtbuf = timings.shift();
 	   
-      if (dtbuf.dt < 0.0) {
-          t_buf = (-1.0*dtbuf.dt);
-          if (dtbuf.action == STEP_A) {
-            stepper_top.set_dir(false);   
-          } else if (dtbuf.action == STEP_B) {
-            stepper_bottom.set_dir(false);   
-          }
-	    }
-	    else {
-          t_buf = dtbuf.dt;
-          if (dtbuf.action == STEP_A) {
-            stepper_top.set_dir(true);   
-          } else if (dtbuf.action == STEP_B) {
-            stepper_bottom.set_dir(true);   
-          }	    
+
+      if (dtbuf.action & DIR_A) {
+        stepper_top.set_dir(true);
+      }
+      else {
+        stepper_top.set_dir(false); 
+      }
+
+      if (dtbuf.action & DIR_B) {
+        stepper_bottom.set_dir(true);
+      }
+      else {
+        stepper_bottom.set_dir(false); 
       }
       
 
-      if (!started) {
-        started = true;
-        mus = 0;
-        t_actual = 0.0;
-        t_target = 0.0;
-        PITimer1.period(t_buf);
-        init_pid(pid);
-      } else {
-        t_actual = ((float) mus)*1e-6;
-        ddt = calc_pid(pid, t_target-t_actual);
-        if (ddt+t_buf > 1e-6) {
-          PITimer1.period(t_buf + ddt);
-        } else {
-          PITimer1.period(t_buf);          
-        }
-      }
-      t_target += t_buf;
+      // if (!started) {
+      //   started = true;
+      //   mus = 0;
+      //   t_actual = 0.0;
+      //   t_target = 0.0;
+      //   PITimer1.period(t_buf);
+      //   init_pid(pid);
+      // } else {
+      //   t_actual = ((float) mus)*1e-6;
+      //   ddt = calc_pid(pid, t_target-t_actual);
+      //   if (ddt+t_buf > 1e-6) {
+      //     PITimer1.period(t_buf + ddt);
+      //   } else {
+      //     PITimer1.period(t_buf);          
+      //   }
+      // }
+      // t_target += t_buf;
+      PITimer1.period(dtbuf.dt);
 
 
-      if (dtbuf.action == STEP_A) {
+      if (dtbuf.action & STEP_A) {
         //stepper_top.step(); // unsafe stepping
         step_top(); // save stepping, checks the endswitches
-      } else if (dtbuf.action == STEP_B) {
+      }
+      if (dtbuf.action & STEP_B) {
         //stepper_bottom.step(); // unsafe stepping
         step_bottom(); // save stepping, checks the endswitches
-      } else if (dtbuf.action == PEN_UP) {
+      }
+      if (dtbuf.action & PENUP) {
         penservo.write(POS_UP);
         started = false;
-      } else if (dtbuf.action == PEN_DOWN) {
+      }
+      if (dtbuf.action & PENDOWN) {
         penservo.write(POS_DOWN);
         started = false;
-      } else if (dtbuf.action == PAUSE) {
-        // do nothing
-      } else if (dtbuf.action == END) {
+      }
+      if (dtbuf.action & END) {
         clear();
       }
 

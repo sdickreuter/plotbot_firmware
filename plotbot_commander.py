@@ -288,7 +288,7 @@ class Form(QtWidgets.QDialog):
         
         self.bot.start_moving()
 
-        t = pu.read_tmng_files("./Zeichnung.tmng")
+        t = np.loadtxt("Zeichnung.tmng",delimiter=" ",skiprows=1)
 
         size = 500
 

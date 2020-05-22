@@ -55,10 +55,6 @@ def generate_triangle_movement(t, freq = 0.00008, phase = 0.0,dtmin = 0.0001, dt
     return dt
 
 
-def read_tmng_files(filename):
-    return np.loadtxt(filename,delimiter=" ",skiprows=1)
-     
-
 
 class PlotBot(object):
 
