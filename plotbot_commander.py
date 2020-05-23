@@ -99,11 +99,6 @@ class Form(QtWidgets.QDialog):
         rightlayout.addLayout(bposlayout)
 
 
-        self.moveto_button = QtWidgets.QPushButton("Move to")
-        self.moveto_button.setEnabled(False)
-        rightlayout.addWidget(self.moveto_button)
-
-
         self.manualpos_button = QtWidgets.QPushButton("Get Manual Pos")
         self.manualpos_button.setEnabled(False)
         rightlayout.addWidget(self.manualpos_button)
@@ -162,8 +157,6 @@ class Form(QtWidgets.QDialog):
         self.rhome_button.clicked.connect(self.rhome)
         self.readpos_button.clicked.connect(self.readpos)
 
-        self.moveto_button.clicked.connect(self.moveto)
-
         self.manualpos_button.clicked.connect(self.get_manual_position)
         
         self.servo_button.clicked.connect(self.set_servo)
@@ -190,7 +183,6 @@ class Form(QtWidgets.QDialog):
             self.togglemotors_button.setEnabled(True)
             self.rhome_button.setEnabled(True)
             self.readpos_button.setEnabled(True)
-            self.moveto_button.setEnabled(True)
             self.servo_button.setEnabled(True)
             self.up_button.setEnabled(True)
             self.down_button.setEnabled(True)
@@ -314,80 +306,8 @@ class Form(QtWidgets.QDialog):
         while l > 0:
             l = self.bot.read_bufferlength()
             time.sleep(0.05)
-        self.moveto()
 
 
-
-    def moveto(self):
-        a = self.a_spin.value()
-        b = self.b_spin.value()
-        self.textbox.appendPlainText("moveto "+str(a)+" "+str(b))
-
-        self.bot.clear()
-        self.move()
-
-        apos, bpos = self.bot.read_positions()
-        asteps = a - apos
-        bsteps = b - bpos
-
-        adir = np.sign(asteps)
-        bdir = np.sign(bsteps)
-
-        asteps = np.abs(asteps)
-        bsteps = np.abs(bsteps)
-
-        if asteps > bsteps:
-            dta = np.repeat(0.0005, asteps)    
-            dtb = np.repeat( asteps*0.0005/ bsteps, bsteps)
-        else:
-            dta = np.repeat( bsteps*0.0005/ asteps, asteps)
-            dtb = np.repeat(0.0005, bsteps)
-
-        dta[dta < 0.0005] += 0.0005
-        dtb[dtb < 0.0005] += 0.0005
-
-        dta *= adir
-        dtb *= bdir
-
-        if len(dta) > 0:
-            a_finished = False
-        else:
-            a_finished = True
-        if len(dtb) > 0:
-            b_finished = False
-        else:
-            b_finished = True
-
-        size = 500
-
-        a_ind = 0
-        b_ind = 0
-        while not (a_finished and b_finished):
-            
-            alen, blen = self.bot.read_bufferlength()
-            #print(not (a_finished and b_finished), alen, blen)
-
-            if alen is not None:
-                if (((alen <= blen) and (not a_finished)) or b_finished):
-                    if alen < (3000-size):
-                        send = dta[a_ind:a_ind+size]
-                        if len(send) > 0:
-                            self.bot.write_buffer(send, np.repeat(0,len(send)), b'a')
-                            a_ind += size
-                        else:
-                            a_finished = True  
-
-                elif not b_finished:
-                    if blen < (3000-size):
-                        send = dtb[b_ind:b_ind+size]
-                        if len(send) > 0:
-                            self.bot.write_buffer(send, np.repeat(0,len(send)), b'b')
-                            b_ind += size
-                        else:
-                            b_finished = True  
-
-
-            time.sleep(0.01)
 
 
     def __del__(self):
