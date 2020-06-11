@@ -5,11 +5,11 @@
 #include <PacketSerial.h>
 #include <PWMServo.h>
 #include "defines.h"
-#include "pid.h"
-
+ 
 #define CIRCULAR_BUFFER_INT_SAFE
 #include "CircularBuffer.h"
 
+// Buffer for holding step timings
 // Teensy 3.2 has 64 kbytes of RAM
 // sizeof(dtData) = 5 bytes
 CircularBuffer<dtData, BUFFER_SIZE> timings;
@@ -30,16 +30,9 @@ Stepper stepper_bottom(TOP_ENABLE, TOP_MS1, TOP_MS2, TOP_SPRD, TOP_STEP, TOP_DIR
 Stepper stepper_top(BOTTOM_ENABLE, BOTTOM_MS1, BOTTOM_MS2, BOTTOM_SPRD, BOTTOM_STEP, BOTTOM_DIR,false);
 
 
-// variables for storing objects from buffers
+// variable for storing object from buffer
 dtData dtbuf;
 
-// keep track of elapsed times
-elapsedMicros mus;
-PID pid;
-float t_buf;
-float t_actual;
-float t_target;
-float ddt;
 
 // variable for state of motors, if true buffers will be checked for content regularly, and if they
 // have timings in them the steps will be performed
@@ -91,8 +84,7 @@ void clear() {
 void update() {
 	if (moving) {
 	  if (!timings.isEmpty()) {
-	    dtbuf = timings.shift();
-	   
+	    dtbuf = timings.shift();   
 
       if (dtbuf.action & DIR_A) {
         stepper_top.set_dir(true);
@@ -109,23 +101,6 @@ void update() {
       }
       
 
-      // if (!started) {
-      //   started = true;
-      //   mus = 0;
-      //   t_actual = 0.0;
-      //   t_target = 0.0;
-      //   PITimer1.period(t_buf);
-      //   init_pid(pid);
-      // } else {
-      //   t_actual = ((float) mus)*1e-6;
-      //   ddt = calc_pid(pid, t_target-t_actual);
-      //   if (ddt+t_buf > 1e-6) {
-      //     PITimer1.period(t_buf + ddt);
-      //   } else {
-      //     PITimer1.period(t_buf);          
-      //   }
-      // }
-      // t_target += t_buf;
       PITimer1.period(dtbuf.dt);
 
 
@@ -139,18 +114,16 @@ void update() {
       }
       if (dtbuf.action & PENUP) {
         penservo.write(POS_UP);
-        started = false;
       }
       if (dtbuf.action & PENDOWN) {
         penservo.write(POS_DOWN);
-        started = false;
       }
       if (dtbuf.action & END) {
         clear();
       }
 
 	  } else {
-	  		PITimer1.period(0.01);
+	  		PITimer1.period(0.001);
 		}
 	} else {		
 	  // stop timer if buffer is empty and moving is false
@@ -279,7 +252,7 @@ void home_motors(bool reverse) {
     update_switches();
     delayMicroseconds(50);
   }
-  _home_motors(reverse,10);
+  _home_motors(reverse,15);
 }
 
 
@@ -336,7 +309,7 @@ union union_long {
 //uint8_t transmitBuffer[512*4];
 uint8_t transmitBuffer[128];
 
-// This is our handler callback function.
+// This is the packetserial handler callback function.
 // When an encoded packet is received and decoded, it will be delivered here.
 // The `buffer` is a pointer to the decoded byte array. `size` is the number of
 // bytes in the `buffer`.
@@ -356,7 +329,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
     union_float dt;
 
-    	//if ( size.l < (BUFFER_SIZE-length_cb(&asteps)) ) {
   	if ( size.l < 2000 ) {
       for (long c=0; c<size.l; c++) {
       	for (byte i=0; i<4; i++) {
@@ -441,31 +413,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 	  	PITimer1.reset();
 	  	PITimer1.period(0.1);
 	  	PITimer1.start();		
-  	}
-    // if (length_cb(&asteps)>0) {
-    //   if (!PITimer1.running()) {
-    // 		//dtx = ysteps.pop();
-	 		// 	//PITimer1.period(dtx.dt);
-	   //    PITimer1.reset();
-	   //    PITimer1.period(0.01);
-		  // 	PITimer1.start();
-    //   }
-    // }
-    // if (length_cb(&bsteps)>0) {
-    //   if (!PITimer2.running()) {
-	   //    //dty = xsteps.pop();
-	   //    //PITimer2.period(dty.dt);
-	   //    PITimer2.reset();
-	   //    PITimer2.period(0.01);
-	   //    PITimer2.start();   
-    //   }
-    // }
-
-  // // 's' -> start timers and get ready to
-  // } else if (command == 's') {
-  //   byte offset = 1;
-  //   char axis = *(buffer + offset);  
-  
+  	} 
   // 'c' -> clear buffers
   } else if (command == 'c') {
     clear();

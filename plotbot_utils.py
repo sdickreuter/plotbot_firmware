@@ -61,11 +61,13 @@ class PlotBot(object):
     def __init__(self, comport=None):
         if comport is None:
             serialports = serial_ports()
-            self.serial = serial.Serial(serialports[0], timeout=0.5)
+            #self.serial = serial.Serial(serialports[0], timeout=0.1)
+            self.serial = serial.Serial(serialports[0], timeout=False)
 
         else:
-            self.serial = serial.Serial(comport, timeout=0.5)
-    
+            #self.serial = serial.Serial(comport, timeout=0.1)
+            self.serial = serial.Serial(comport, timeout=False)
+
         time.sleep(1) # allow some time for the Arduino to completely reset
 
 
@@ -203,7 +205,9 @@ class PlotBot(object):
     def home(self):
         # home motors
         self.write(b'h')
-        homed = self.read_ok()
+        homed = False
+        while not homed:
+            homed = self.read_ok()
         if homed:
             print("Steppers are homed.")
         else:
