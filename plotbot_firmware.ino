@@ -82,9 +82,9 @@ void clear() {
 
 
 void update() {
-	if (moving) {
-	  if (!timings.isEmpty()) {
-	    dtbuf = timings.shift();   
+  if (moving) {
+    if (!timings.isEmpty()) {
+      dtbuf = timings.shift();   
 
       if (dtbuf.action & DIR_A) {
         stepper_top.set_dir(true);
@@ -122,11 +122,11 @@ void update() {
         clear();
       }
 
-	  } else {
-	  		PITimer1.period(0.001);
-		}
-	} else {		
-	  // stop timer if buffer is empty and moving is false
+    } else {
+        PITimer1.period(0.001);
+    }
+  } else {    
+    // stop timer if buffer is empty and moving is false
     PITimer1.stop();
     PITimer1.reset();
   }
@@ -166,7 +166,7 @@ void setup() {
 
 
 void update_switches() {
-	// update all bounce objects
+  // update all bounce objects
   topright_bounce.update();
   topleft_bounce.update();
   bottomleft_bounce.update();
@@ -187,13 +187,13 @@ void _home_motors(bool reverse, int delay_mult) {
   stepper_bottom.enableDriver();
 
   if (!reverse) {
-	  // set both steppers so they move to the left
-  	stepper_top.set_dir(false);
-  	stepper_bottom.set_dir(false);  	
+    // set both steppers so they move to the left
+    stepper_top.set_dir(false);
+    stepper_bottom.set_dir(false);    
   } else {
-	  // set both steppers so they move to the right
-  	stepper_top.set_dir(true);
-  	stepper_bottom.set_dir(true);  	  	
+    // set both steppers so they move to the right
+    stepper_top.set_dir(true);
+    stepper_bottom.set_dir(true);       
   }
 
   while ((!finished)) {
@@ -227,14 +227,14 @@ void _home_motors(bool reverse, int delay_mult) {
     }
   }
 
-	if (!reverse) {
-	  // set both steppers so they move to the right
-	  stepper_top.set_dir(true);
-	  stepper_bottom.set_dir(true);
+  if (!reverse) {
+    // set both steppers so they move to the right
+    stepper_top.set_dir(true);
+    stepper_bottom.set_dir(true);
   } else {
-		// set both steppers so they move to the left
-		stepper_top.set_dir(false);
-		stepper_bottom.set_dir(false); 	
+    // set both steppers so they move to the left
+    stepper_top.set_dir(false);
+    stepper_bottom.set_dir(false);  
   }
 
   // make some steps away from the endswitches
@@ -259,35 +259,35 @@ void home_motors(bool reverse) {
 
 void jog(char axis, long steps) {
   
-	// set stepper direction
+  // set stepper direction
   if (steps < 0.0) {
-  		if (axis == 'a') {
-      	stepper_top.set_dir(false);   
-  		} else {
-      	stepper_bottom.set_dir(false);   
+      if (axis == 'a') {
+        stepper_top.set_dir(false);   
+      } else {
+        stepper_bottom.set_dir(false);   
       }
       steps *= -1;
   } else {
-  		if (axis == 'a') {
-      	stepper_top.set_dir(true);   
-  		} else {
-      	stepper_bottom.set_dir(true);   
+      if (axis == 'a') {
+        stepper_top.set_dir(true);   
+      } else {
+        stepper_bottom.set_dir(true);   
       }
   }
 
   // do steps
-	if (axis == 'a') {
-	  for (int i = 0; i<steps; i++) {
-	  	update_switches();
-	    step_top();
-	    delayMicroseconds(DELAYMU);
- 		}
-	} else {
-	  for (int i = 0; i<steps; i++) {
-	  	update_switches();
-	    step_bottom();
-	    delayMicroseconds(DELAYMU);
- 		}
+  if (axis == 'a') {
+    for (int i = 0; i<steps; i++) {
+      update_switches();
+      step_top();
+      delayMicroseconds(DELAYMU);
+    }
+  } else {
+    for (int i = 0; i<steps; i++) {
+      update_switches();
+      step_bottom();
+      delayMicroseconds(DELAYMU);
+    }
   }
 
 }
@@ -329,24 +329,24 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
     union_float dt;
 
-  	if ( size.l < 2000 ) {
+    if ( size.l < 2000 ) {
       for (long c=0; c<size.l; c++) {
-      	for (byte i=0; i<4; i++) {
-       		dt.b[i] = *(buffer+offset+i);
+        for (byte i=0; i<4; i++) {
+          dt.b[i] = *(buffer+offset+i);
         }
         data.dt = dt.f;
         data.action = *(buffer+offset+4);
         timings.push(data);
         offset += 5;
       }
-	    transmitBuffer[0] = 'o';
-    	transmitBuffer[1] = 'k';
-	  	myPacketSerial.send(transmitBuffer, 2);
-  	}
+      transmitBuffer[0] = 'o';
+      transmitBuffer[1] = 'k';
+      myPacketSerial.send(transmitBuffer, 2);
+    }
 
   // 'j' -> jog motor
   } else if (command == 'j') {
-	 	long offset = 1;
+    long offset = 1;
     char axis = *(buffer + offset);
     offset+=1;
     union_long steps; 
@@ -362,7 +362,7 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
 
   // 's' -> set pen-servo
   } else if (command == 's') {
-	 	long offset = 1;
+    long offset = 1;
     byte pos = *(buffer + offset);
     penservo.write( (int) pos);
 
@@ -408,12 +408,12 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   // 'm' -> start moving
   } else if (command == 'm') {
     started = false;
-  	if (!moving) {
-  		moving = true;
-	  	PITimer1.reset();
-	  	PITimer1.period(0.1);
-	  	PITimer1.start();		
-  	} 
+    if (!moving) {
+      moving = true;
+      PITimer1.reset();
+      PITimer1.period(0.1);
+      PITimer1.start();   
+    } 
   // 'c' -> clear buffers
   } else if (command == 'c') {
     clear();
@@ -426,21 +426,21 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
     offset+=1; 
     transmitBuffer[offset] = 'a';
     offset+=1;    
-		pos.l = stepper_top.get_pos();
-		transmitBuffer[offset+0] = pos.b[0];
-		transmitBuffer[offset+1] = pos.b[1];
-		transmitBuffer[offset+2] = pos.b[2];
-		transmitBuffer[offset+3] = pos.b[3];
-		offset += 4;
+    pos.l = stepper_top.get_pos();
+    transmitBuffer[offset+0] = pos.b[0];
+    transmitBuffer[offset+1] = pos.b[1];
+    transmitBuffer[offset+2] = pos.b[2];
+    transmitBuffer[offset+3] = pos.b[3];
+    offset += 4;
     
     transmitBuffer[offset] = 'b';
     offset+=1;    
-		pos.l = stepper_bottom.get_pos();
-		transmitBuffer[offset+0] = pos.b[0];
-		transmitBuffer[offset+1] = pos.b[1];
-		transmitBuffer[offset+2] = pos.b[2];
-		transmitBuffer[offset+3] = pos.b[3];
-		offset += 4;
+    pos.l = stepper_bottom.get_pos();
+    transmitBuffer[offset+0] = pos.b[0];
+    transmitBuffer[offset+1] = pos.b[1];
+    transmitBuffer[offset+2] = pos.b[2];
+    transmitBuffer[offset+3] = pos.b[3];
+    offset += 4;
     
     myPacketSerial.send(transmitBuffer, offset);
 

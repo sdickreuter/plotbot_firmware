@@ -291,21 +291,17 @@ class Form(QtWidgets.QDialog):
             
             l = self.bot.read_bufferlength()
 
+            time.sleep(0.02)
+
             if l is not None:
-<<<<<<< Updated upstream
                 if l < (5000-size):
-=======
-                if l < (4000-size):
->>>>>>> Stashed changes
                     send = t[ind:ind+size,:]
                     if len(send) > 0:
                         self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int))
                         ind += size
-                        print("send ",ind," in buffer ",l)
                     else:
                         finished = True  
-                if l > 1000:
-                    time.sleep(0.01)
+
 
         while l > 0:
             l = self.bot.read_bufferlength()
