@@ -38,9 +38,6 @@ dtData dtbuf;
 // have timings in them the steps will be performed
 bool moving = false;
 
-// has the movement started ?
-bool started = false;
-
 
 // do a step but check state of endswitches first
 void step_top() {
@@ -123,7 +120,8 @@ void update() {
       }
 
     } else {
-        PITimer1.period(0.001);
+        PITimer1.reset();
+        PITimer1.period(0.01);
     }
   } else {    
     // stop timer if buffer is empty and moving is false
@@ -407,7 +405,6 @@ void onPacketReceived(const uint8_t* buffer, size_t size)
   
   // 'm' -> start moving
   } else if (command == 'm') {
-    started = false;
     if (!moving) {
       moving = true;
       PITimer1.reset();

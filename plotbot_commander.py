@@ -282,7 +282,7 @@ class Form(QtWidgets.QDialog):
 
         t = np.loadtxt("Zeichnung.tmng",delimiter=" ",skiprows=1)
 
-        size = 900
+        size = 500
 
         finished = False
 
@@ -290,8 +290,6 @@ class Form(QtWidgets.QDialog):
         while not finished:
             
             l = self.bot.read_bufferlength()
-
-            time.sleep(0.02)
 
             if l is not None:
                 if l < (5000-size):
@@ -301,10 +299,13 @@ class Form(QtWidgets.QDialog):
                         ind += size
                     else:
                         finished = True  
-
+                if l < 1000:
+                    print("buffer: ",l)
 
         while l > 0:
             l = self.bot.read_bufferlength()
+            if l is None:
+                l = 1
             time.sleep(0.05)
 
 

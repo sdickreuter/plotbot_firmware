@@ -62,18 +62,21 @@ class PlotBot(object):
         if comport is None:
             serialports = serial_ports()
             #self.serial = serial.Serial(serialports[0], timeout=0.1)
-            self.serial = serial.Serial(serialports[0], timeout=0.2)
+            self.serial = serial.Serial(serialports[0], timeout=0.01)
 
         else:
             #self.serial = serial.Serial(comport, timeout=0.1)
-            self.serial = serial.Serial(comport, timeout=0.2)
+            self.serial = serial.Serial(comport, timeout=0.01)
 
         time.sleep(1) # allow some time for the Arduino to completely reset
 
 
     def read(self):
         msg = self.serial.read_until(terminator=b'\x00')
-        return cobs.decode(msg[:-1])
+        if len(msg) > 0:
+            return cobs.decode(msg[:-1])
+        else:
+            return b''
 
 
     def write(self, msg):
@@ -92,7 +95,7 @@ class PlotBot(object):
                 if msg == b'ok':
                     ok = True
             count += 1
-            if count > 60: break
+            if count > 120: break
         return ok
 
 
@@ -175,9 +178,8 @@ class PlotBot(object):
 
         c = 0
         msg = b''
-        while len(msg) < 1 and c < 10:
+        while len(msg) < 1 and c < 50:
             msg = self.read()
-            time.sleep(0.01)
             c += 1
 
         if len(msg) > 1:

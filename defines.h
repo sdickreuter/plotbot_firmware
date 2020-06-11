@@ -21,7 +21,7 @@
 #define  END     0b01000000
 
 
-#define BUFFER_SIZE 6000
+#define BUFFER_SIZE 5000
 
 // Pinout for top stepper
 #define TOP_ENABLE 13   // blau
