@@ -73,9 +73,9 @@ class PlotBot(object):
 
     def read(self):
         msg = self.serial.read_until(terminator=b'\x00')
-        if len(msg) > 0:
+        try:
             return cobs.decode(msg[:-1])
-        else:
+        except:
             return b''
 
 
