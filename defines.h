@@ -1,6 +1,6 @@
 
 // max number of elements that can be written to buffer at one time
-#define MAX_BUFFER_ELEMENTS 1000
+#define MAX_BUFFER_ELEMENTS 500
 
 // speed for homing
 #define DELAYMU 300
@@ -21,7 +21,7 @@
 #define  END     0b01000000
 
 
-#define BUFFER_SIZE 5000
+#define BUFFER_SIZE 5100
 
 // Pinout for top stepper
 #define TOP_ENABLE 13   // blau
