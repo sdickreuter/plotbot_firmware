@@ -72,7 +72,7 @@ class PlotBot(object):
 
 
     def read(self):
-        msg = self.serial.read_until(terminator=b'\x00')
+        msg = self.serial.read_until(expected=b'\x00')
         try:
             return cobs.decode(msg[:-1])
         except:
@@ -160,7 +160,7 @@ class PlotBot(object):
         reply += b'b'
         reply += bytes(struct.pack('<l',len(timings)))
         for i in range(len(timings)):
-            reply += bytes(struct.pack("<f", timings[i]))
+            reply += bytes(struct.pack("<L", timings[i]))
             reply += bytes(struct.pack("B", actions[i]))
         self.write(reply)
 
@@ -232,6 +232,4 @@ class PlotBot(object):
 if __name__ == '__main__':
     #bot = PlotBot()
     #bot.home()
-    a = read_tmng_files("./Zeichnung")
-    print(a.shape)
-    print(a)
+    pass

@@ -281,6 +281,7 @@ class Form(QtWidgets.QDialog):
         self.bot.start_moving()
 
         t = np.loadtxt("Zeichnung.tmng",delimiter=" ",skiprows=1)
+        t = t.astype(int)
 
         size = 300
 
@@ -295,7 +296,7 @@ class Form(QtWidgets.QDialog):
                 if l < (5000-size):
                     send = t[ind:ind+size,:]
                     if len(send) > 0:
-                        self.bot.write_buffer(send[:,0]*1e-6, np.array(send[:,1],dtype=np.int))
+                        self.bot.write_buffer(send[:,0], np.array(send[:,1],dtype=int))
                         ind += size
                     else:
                         finished = True  
